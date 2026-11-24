@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Envoltorio TypeScript del núcleo de protocolo en WASM. Toda la lógica de protocolo y criptografía vive en Rust (I-8).",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/index.ts"
   },

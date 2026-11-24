@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Configuración compartida de TypeScript y ESLint.",
+  "license": "Apache-2.0",
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./eslint": "./eslint.config.base.mjs"

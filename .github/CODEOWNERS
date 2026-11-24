@@ -1,0 +1,23 @@
+# Zonas sensibles (docs/10 §8, CLAUDE.md I-15): toda modificación exige la revisión
+# del responsable humano. Con la protección de `main`, activar "Require review from
+# Code Owners" para que GitHub lo haga cumplir.
+
+/crates/social-crypto/      @oniriumagency
+/crates/social-core/        @oniriumagency
+/crates/social-governor/    @oniriumagency
+/services/registry/         @oniriumagency
+/services/ledger/           @oniriumagency
+**/migrations/              @oniriumagency
+/infra/deploy/              @oniriumagency
+/.github/                   @oniriumagency
+/deny.toml                  @oniriumagency
+/spec/                      @oniriumagency
+
+# Reglas de agentes y licencias
+/CLAUDE.md                  @oniriumagency
+/ANTIGRAVITY.md             @oniriumagency
+/.agents/                   @oniriumagency
+/.claude/                   @oniriumagency
+/scripts/check-agent-rules.mjs @oniriumagency
+/LICENSE                    @oniriumagency
+/LICENSES/                  @oniriumagency

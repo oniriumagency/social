@@ -36,7 +36,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 | 008 | Copia ancla más réplicas comunitarias |
 | 009 | Media cifrada con clave por contenido y servicio de claves |
 | 010 | Orden de fases: social, humanidad, nodo, ledger |
-| 011 | Licencias (propuesta, pendiente de D-04) |
+| 011 | Licencias: AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo y SDK |
 | 012 | Pasarela como monolito modular; registro y ledger aislados |
 | 013 | Emisión de puntos por presupuesto, intransferibles y con vencimiento |
 | 014 | El móvil y el navegador son clientes ligeros |
@@ -115,9 +115,10 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Decisión.** F1 alfa por invitación sin puntos; F2 humanidad; F3 nodo con puntos de prueba; F4 ledger y comercios. Ningún punto con valor antes de G2, G3 y la auditoría de G4.
 - **Consecuencias.** Los puntos llegan más tarde. No hay ventana para granjas.
 
-## ADR-011. Licencias (propuesta, pendiente de D-04)
+## ADR-011. Licencias: AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo y SDK
 
-- **Decisión propuesta.** AGPL-3.0 para servicios, nodo y apps. Apache-2.0 para núcleo, especificación y SDK.
+- **Estado.** Aceptada el 2026-11-24 (D-04).
+- **Decisión.** AGPL-3.0-only para servicios, nodo y apps. Apache-2.0 para núcleo, especificación, SDK y herramientas. El reparto por carpeta vive en `LICENSE`; cada paquete lo declara con su identificador SPDX en `Cargo.toml` o `package.json`.
 - **Consecuencias.** Hay que vigilar la compatibilidad de licencias de dependencias y de datos geográficos.
 
 ## ADR-012. Pasarela como monolito modular; registro y ledger como servicios aislados

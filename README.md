@@ -47,10 +47,14 @@ Nombre en clave de una red social de microblogging con conversación local y glo
 
 ## Primeros pasos
 
-1. Resolver la decisión D-04 (licencias) en `docs/15-decisiones-pendientes.md`.
-2. Instalar los requisitos de `docs/11-repositorio-entorno-y-ci.md` §1 (Git, Rust con rustup, Node.js 22 o superior, pnpm 10, Docker Desktop).
-3. `pnpm bootstrap` y luego `pnpm check`.
+1. Instalar los requisitos de `docs/11-repositorio-entorno-y-ci.md` §1 (Git, Rust con rustup, Node.js 22 o superior, pnpm 10, Docker Desktop).
+2. `pnpm bootstrap` y luego `pnpm check`.
+3. Leer `CONTRIBUTING.md` antes de abrir un PR.
 
 ## Seguridad
 
-No abras incidencias públicas para vulnerabilidades. El canal privado se define en `SECURITY.md` (tarea F0-T03).
+No abras incidencias públicas para vulnerabilidades: sigue `SECURITY.md`.
+
+## Licencia
+
+Apache-2.0 para protocolo, núcleo, SDK y herramientas; AGPL-3.0-only para servicios, nodo y aplicaciones. El reparto por carpeta está en `LICENSE`.
