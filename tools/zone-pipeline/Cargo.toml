@@ -1,0 +1,32 @@
+[package]
+name = "zone-pipeline"
+description = "Prototipo del spike S3: catálogo y paquetes de zonas a partir de límites administrativos"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["pipeline"]
+# Construcción del catálogo (nativo): GeoJSON, geometría y H3.
+pipeline = ["dep:geojson", "dep:geo", "dep:serde_json", "dep:social-crypto", "h3o/geo"]
+# Medición de la búsqueda en WASM (spike S3).
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+h3o = { version = "0.11.1", default-features = false, features = ["std"] }
+geojson = { version = "1.0.0", optional = true }
+geo = { version = "0.33.1", optional = true }
+serde_json = { version = "1.0.154", optional = true }
+social-crypto = { path = "../../crates/social-crypto", optional = true }
+wasm-bindgen = { version = "=0.2.130", optional = true }
+
+[[bin]]
+name = "zone-pipeline"
+required-features = ["pipeline"]

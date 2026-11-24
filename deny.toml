@@ -40,7 +40,8 @@ allow-wildcard-paths = true
 # grafo que la importe hace fallar `pnpm check:supply` y el trabajo supply-chain de CI.
 # Para otra biblioteca criptográfica, añádela aquí en el mismo PR (aprobación humana, I-15).
 # proptest, rand y tempfile son solo de pruebas: generan datos de prueba y archivos
-# temporales, nunca material criptográfico del protocolo.
+# temporales, nunca material criptográfico del protocolo. const-random-macro (vía ahash
+# en h3o) y ahash solo siembran tablas hash contra colisiones, no material del protocolo.
 deny = [
   { crate = "ed25519-dalek", wrappers = ["social-crypto"] },
   { crate = "curve25519-dalek", wrappers = ["ed25519-dalek"] },
@@ -56,7 +57,7 @@ deny = [
   { crate = "aes-gcm", wrappers = ["social-crypto"] },
   { crate = "rsa", wrappers = ["social-crypto"] },
   { crate = "blind-rsa-signatures", wrappers = ["social-crypto"] },
-  { crate = "getrandom", wrappers = ["social-crypto", "rand", "tempfile"] },
+  { crate = "getrandom", wrappers = ["social-crypto", "rand", "tempfile", "const-random-macro", "ahash"] },
   { crate = "ring" },
   { crate = "openssl" },
   { crate = "openssl-sys" },

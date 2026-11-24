@@ -35,7 +35,7 @@
 | F0-T11 | Comprobación de reglas de agentes | en revisión | Claude Code | `tarea/F0-T11-reglas-en-ci` | 2026-11-24 |
 | F0-S1 | Spike: prueba de humanidad (Colombia) | pendiente | | | |
 | F0-S2 | Spike: red entre nodos | pendiente | | | |
-| F0-S3 | Spike: zonas | pendiente | | | |
+| F0-S3 | Spike: zonas | en revisión | Claude Code | `tarea/F0-S3-zonas` | 2026-11-24 |
 | F0-S4 | Spike: gobernador | pendiente | | | |
 | F0-S5 | Spike: llaves | pendiente | | | |
 | G0 | Compuerta | pendiente | | | |
@@ -62,6 +62,7 @@ Notas de tareas que quedaron a medias. Formato:
 - Hecho: F0-T01, T02, T04 a T11 implementadas en ramas apiladas (`tarea/F0-T01-...` → `tarea/F0-T10-fuzzing`, cada una sale de la anterior). `pnpm check` en verde en Linux en cada una.
 - Falta: subir las ramas y abrir un PR por tarea; comprobar CI en Windows; activar la protección de `main` (H); PR de prueba con fallo intencional (criterio de F0-T02). F0-T03 sigue bloqueada por D-04.
 - Probado: bootstrap y check desde un clon limpio (T01); `pnpm dev:infra` con Docker real (T04); 76 vectores en nativo, Node y Chromium (T08); 10 minutos de fuzzing por objetivo sin fallos (T10).
+- Spike S3 (`tarea/F0-S3-zonas`, sale de T10): informe en `docs/spikes/S3-zonas.md` y prototipo `tools/zone-pipeline`. Ciudad y 20 localidades completas con datos abiertos; barrios de OSM insuficientes (1,7 % de la ciudad); búsqueda en WASM de 2 µs. Falta el dato oficial de IDECA (bloqueado por la red) y sus licencias.
 - Preocupa: CI en Windows no se ha podido ejecutar todavía. MinIO ya no publica imágenes comunitarias: se usa SeaweedFS en local (`docs/03`, `docs/11`). Los spikes S1, S2, S4 y S5 necesitan dispositivos y redes reales.
 
 ## Historial de compuertas
