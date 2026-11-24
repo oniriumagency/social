@@ -1,0 +1,54 @@
+# Secretos y credenciales: nunca al repositorio
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+
+# Rust
+target/
+**/*.rs.bk
+
+# Node
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# WASM generado
+crates/social-core-wasm/pkg/
+
+# Tauri
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# Datos locales
+infra/compose/data/
+*.sqlite
+*.db
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Registros y volcados
+*.log
+logs/
+*.dump
+
+# Fuzzing
+fuzz/artifacts/
+fuzz/corpus/
