@@ -1,0 +1,1 @@
+{"$id":"https://social.invalid/spec/schemas/kinds/device.revoke.schema.json","$schema":"https://json-schema.org/draft/2020-12/schema","additionalProperties":false,"properties":{"device":{"pattern":"^[0-9a-f]{64}$","type":"string"}},"required":["device"],"title":"Contenido de device.revoke","type":"object","x-rules":"Efecto inmediato desde created_at.","x-signer":"root"}

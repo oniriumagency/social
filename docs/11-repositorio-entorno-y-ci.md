@@ -107,7 +107,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm test:vectors` | Vectores dorados en nativo, en WASM sobre Node y en WASM dentro de Chromium (Playwright). |
 | `pnpm test:e2e` | Playwright. |
 | `pnpm db:migrate` | Aplica migraciones. |
-| `pnpm spec:gen` | Regenera esquemas y OpenAPI. |
+| `pnpm spec:gen` | Regenera `spec/schemas/` (esquemas JSON de la envoltura y de cada tipo, desde la tabla de `social-core`). La OpenAPI se añade con la pasarela en F1. `pnpm spec:check` comprueba que no hay diferencias y forma parte de `pnpm check`. |
 | `pnpm vectors:gen` | Regenera `spec/vectors/` desde `social-core`. Cambiar un vector existente es un cambio de protocolo y exige ADR. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
 | `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
@@ -134,11 +134,11 @@ GitHub Actions. Matriz en `ubuntu-latest` y `windows-latest`; `macos-latest` par
 
 | Trabajo | Contenido |
 | :-- | :-- |
-| `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados (`pnpm check:rust`) |
+| `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados y deriva de `spec/schemas/` (`pnpm check:rust`, que incluye `spec:check`) |
 | `wasm` | Compilación del núcleo a WASM y vectores en nativo, Node y navegador (`pnpm test:vectors`) |
 | `ts` | ESLint, tsc, Vitest |
 | `e2e` | Playwright contra pasarela y base de datos efímeras |
-| `spec` | Regenerar esquemas y OpenAPI; falla si hay diferencias |
+| `spec` | Cuando llegue la OpenAPI en F1: regenerarla y fallar si hay diferencias. Hoy la deriva de esquemas la comprueba el trabajo `rust` |
 | `supply-chain` | `cargo-deny` (incluye los avisos de RustSec que revisa `cargo-audit`) y auditoría de pnpm |
 | `secrets` | Escáner de secretos sobre el diff y el historial |
 | `rules` | `pnpm check:rules`; límites de arquitectura |

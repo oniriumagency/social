@@ -978,6 +978,54 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
             ),
             E::TextNotNfc,
         ),
+        // Orden con varios fallos (revisión de F0-T09): campos de la tabla, luego
+        // campos desconocidos, luego reglas entre campos.
+        (
+            "fallo doble: campo desconocido y rotación con menos de 72 horas",
+            ev(
+                ROOT_A,
+                ROOT_A,
+                T0,
+                "account.rotate",
+                obj(vec![
+                    ("new_account", pkh(STRANGER).into()),
+                    ("effective_at", Json::Int(T0 + ROTATE_DELAY - 1)),
+                    ("extra", Json::Bool(true)),
+                ]),
+            )?,
+            E::UnknownField,
+        ),
+        (
+            "fallo doble: label no textual y delegación de más de 90 días",
+            ev(
+                ROOT_A,
+                ROOT_A,
+                T0,
+                "device.grant",
+                obj(vec![
+                    ("device", pkh(STRANGER).into()),
+                    ("caps", Json::Array(vec!["post.create".into()])),
+                    ("expires_at", Json::Int(T0 + 90 * DAY + 1)),
+                    ("label", Json::Int(1)),
+                ]),
+            )?,
+            E::Schema,
+        ),
+        (
+            "challenge con un carácter de control",
+            ev(
+                REGISTRY,
+                REGISTRY,
+                T0,
+                "account.presence",
+                obj(vec![
+                    ("account", pkh(ROOT_A).into()),
+                    ("challenge", "ch\n01".into()),
+                    ("passed_at", Json::Int(T0 - 5)),
+                ]),
+            )?,
+            E::Schema,
+        ),
     ])
 }
 

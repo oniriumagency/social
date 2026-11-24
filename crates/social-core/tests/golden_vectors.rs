@@ -29,7 +29,7 @@ fn envelope_vectors_have_not_drifted() {
 fn validation_vectors_pass() {
     let report = run_suite(VALIDATION);
     assert!(report.ok(), "fallos: {:#?}", report.failures);
-    assert_eq!(report.passed, 60);
+    assert_eq!(report.passed, 63);
 }
 
 #[test]
