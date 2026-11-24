@@ -1,0 +1,36 @@
+{
+  "name": "social",
+  "private": true,
+  "description": "Red social de microblogging local y global, humana y privada (nombre en clave).",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "dev:infra": "node scripts/pending.mjs dev:infra F0-T04",
+    "dev": "node scripts/pending.mjs dev F1-T01",
+    "dev:desktop": "node scripts/pending.mjs dev:desktop F1-T23",
+    "fmt": "node scripts/run.mjs fmt",
+    "fmt:check": "node scripts/run.mjs fmt:check",
+    "lint": "node scripts/run.mjs lint",
+    "typecheck": "node scripts/run.mjs typecheck",
+    "test": "node scripts/run.mjs test",
+    "test:vectors": "node scripts/pending.mjs test:vectors F0-T06",
+    "test:e2e": "node scripts/pending.mjs test:e2e F1-T25",
+    "db:migrate": "node scripts/pending.mjs db:migrate F1-T02",
+    "spec:gen": "node scripts/pending.mjs spec:gen F0-T09",
+    "check:rules": "node scripts/check-agent-rules.mjs",
+    "check": "node scripts/run.mjs check"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "turbo": "2.11.13",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.74.0"
+  }
+}

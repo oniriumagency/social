@@ -1,0 +1,15 @@
+# Finales de línea normalizados: LF en el repositorio y en la copia de trabajo,
+# también en Windows, para que fmt, vectores dorados y hashes coincidan en todos los sistemas.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.wasm binary
+*.bin binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
