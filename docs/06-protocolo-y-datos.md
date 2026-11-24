@@ -43,7 +43,9 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 }
 ```
 
-`tags` contiene solo referencias indexables: `t` (etiqueta, en minúsculas) y `p` (cuenta mencionada). Máximo 16. Todo lo demás va en `content`.
+`tags` contiene solo referencias indexables: `t` (etiqueta, en minúsculas, de 1 a 64 caracteres, sin espacios) y `p` (cuenta mencionada, llave pública en hexadecimal). Cada etiqueta es una lista de exactamente dos cadenas. Máximo 16. Todo lo demás va en `content`.
+
+`kind` son dos o más segmentos `[a-z][a-z0-9_]*` separados por puntos, de 64 bytes como máximo. `created_at` no es negativo. `content` es siempre un objeto. Los campos hexadecimales (`id`, `account`, `signer`, `sig`) tienen la longitud exacta y van en minúsculas.
 
 **Cálculo**
 
@@ -54,7 +56,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 **Validación.** Un receptor DEBE rechazar el evento si falla cualquiera de estos puntos, en este orden:
 
 1. Tamaño total mayor a 16 KiB.
-2. Esquema de `kind` inválido, campos desconocidos en la envoltura, decimales o `null`.
+2. Esquema de `kind` inválido, campos desconocidos en la envoltura, claves repetidas, decimales o `null`.
 3. `id` distinto del calculado.
 4. `sig` inválida para `signer`.
 5. `signer` distinto de `account` y sin `device.grant` vigente y no revocado que cubra `kind` en `created_at`.
@@ -118,7 +120,7 @@ Sin sesiones ni cookies. Toda escritura es un evento firmado. Las lecturas de co
 | `GET /v1/info` | Versión de protocolo, llaves del registro, límites, versión de catálogo. |
 
 - **Paginación:** por cursor opaco que codifica `(created_at, id)`. Nunca por desplazamiento.
-- **Errores:** `{ "error": { "code": "E_SIG_INVALID", "message": "..." } }` con códigos estables enumerados en `social-core`.
+- **Errores:** `{ "error": { "code": "E_SIG_INVALID", "message": "..." } }` con códigos estables enumerados en `social-core` (`ErrorCode`). Envoltura (pasos 1 a 4): `E_EVENT_TOO_LARGE`, `E_JSON_INVALID`, `E_JSON_DUPLICATE_KEY`, `E_JSON_FLOAT`, `E_JSON_NULL`, `E_JSON_INT_RANGE`, `E_SCHEMA`, `E_UNKNOWN_FIELD`, `E_VERSION_UNSUPPORTED`, `E_PUBKEY_INVALID`, `E_ID_MISMATCH`, `E_SIG_INVALID`.
 - **Respuestas de feed:** eventos completos con firma, para que el cliente verifique.
 - **No existe ningún endpoint que reciba coordenadas.**
 - Una cuenta en pausa recibe `E_STEP_UP_REQUIRED` al publicar, con el identificador del reto pendiente. Puede seguir leyendo.
