@@ -134,11 +134,11 @@ GitHub Actions. Matriz en `ubuntu-latest` y `windows-latest`; `macos-latest` par
 
 | Trabajo | Contenido |
 | :-- | :-- |
-| `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados (`pnpm check:rust`) |
+| `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados y deriva de `spec/schemas/` (`pnpm check:rust`, que incluye `spec:check`) |
 | `wasm` | Compilación del núcleo a WASM y vectores en nativo, Node y navegador (`pnpm test:vectors`) |
 | `ts` | ESLint, tsc, Vitest |
 | `e2e` | Playwright contra pasarela y base de datos efímeras |
-| `spec` | Regenerar esquemas y OpenAPI; falla si hay diferencias |
+| `spec` | Cuando llegue la OpenAPI en F1: regenerarla y fallar si hay diferencias. Hoy la deriva de esquemas la comprueba el trabajo `rust` |
 | `supply-chain` | `cargo-deny` (incluye los avisos de RustSec que revisa `cargo-audit`) y auditoría de pnpm |
 | `secrets` | Escáner de secretos sobre el diff y el historial |
 | `rules` | `pnpm check:rules`; límites de arquitectura |

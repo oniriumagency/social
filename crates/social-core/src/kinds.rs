@@ -3,8 +3,16 @@
 //! Cada tipo conocido se declara una sola vez en [`KINDS`]: quién lo firma y qué campos
 //! lleva su contenido, con su tipo, formato y límite. De esa tabla salen a la vez la
 //! validación (este módulo) y los esquemas JSON publicados en `spec/schemas/`
-//! (`crate::schema`, `pnpm spec:gen`), así que no pueden divergir. Las reglas que
-//! relacionan varios campos (plazos, `reply_to` con `root`...) están en `check_rules`.
+//! (`crate::schema`, `pnpm spec:gen`): la lista de campos, los obligatorios, los
+//! enumerados y los límites salen de la tabla. Los formatos (zona, `cid`, `lang`,
+//! códigos, `kind`) están escritos dos veces, como función aquí y como expresión regular
+//! en `schema.rs`; los ata la prueba `packages/core/test/schemas.test.ts`, que pasa los
+//! vectores dorados por los esquemas. Las reglas que relacionan varios campos (plazos,
+//! `reply_to` con `root`...) están en `check_rules`.
+//!
+//! Orden con varios fallos (`docs/06` §4): los campos de la tabla en su orden, cada uno
+//! con presencia, tipo, formato y límite; después los campos desconocidos; al final las
+//! reglas entre campos. El primer fallo da el código.
 //!
 //! En el contenido de un tipo conocido no se admiten campos desconocidos: así ningún
 //! cliente puede colar datos no previstos (por ejemplo, coordenadas, I-2).
@@ -84,7 +92,7 @@ pub enum FieldType {
     Cid,
     /// Etiqueta de idioma BCP 47 sencilla.
     Lang,
-    /// Cadena ASCII de 1 a N bytes.
+    /// Cadena ASCII imprimible (0x20 a 0x7e) de 1 a N bytes.
     Ascii(usize),
     /// Zona: objeto `{id, mode}`.
     Zone,
@@ -408,8 +416,11 @@ fn check_field(name: &str, ty: FieldType, value: &Json) -> Result<(), CoreError>
         }
         F::Ascii(max) => {
             let s = string()?;
-            if s.is_empty() || s.len() > max || !s.is_ascii() {
-                return Err(schema(name, &format!("de 1 a {max} caracteres ASCII")));
+            if s.is_empty() || s.len() > max || !s.bytes().all(|b| (0x20..=0x7e).contains(&b)) {
+                return Err(schema(
+                    name,
+                    &format!("de 1 a {max} caracteres ASCII imprimibles"),
+                ));
             }
         }
         F::Zone => {

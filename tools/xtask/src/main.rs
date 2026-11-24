@@ -90,7 +90,9 @@ fn spec(check: bool) -> ExitCode {
     list_json(&dir, "", &mut existing);
     for rel in existing {
         if !generated.iter().any(|(g, _)| *g == rel) {
-            problems.push(format!("sobra (ya no se genera): spec/schemas/{rel}"));
+            problems.push(format!(
+                "sobra (ya no se genera; bórralo a mano si es correcto): spec/schemas/{rel}"
+            ));
         }
     }
     if problems.is_empty() {
@@ -104,7 +106,7 @@ fn spec(check: bool) -> ExitCode {
             eprintln!("xtask spec: {p}");
         }
         eprintln!(
-            "Ejecuta `pnpm spec:gen` y revisa el cambio: un esquema distinto es un cambio de protocolo."
+            "Ejecuta `pnpm spec:gen` (los archivos sobrantes se borran a mano) y revisa el cambio: un esquema distinto es un cambio de protocolo."
         );
         ExitCode::FAILURE
     }
@@ -114,7 +116,14 @@ fn main() -> ExitCode {
     let arg = std::env::args().nth(1);
     match arg.as_deref() {
         Some("vectors") => vectors(),
-        Some("spec") => spec(std::env::args().nth(2).as_deref() == Some("--check")),
+        Some("spec") => match std::env::args().nth(2).as_deref() {
+            None => spec(false),
+            Some("--check") => spec(true),
+            Some(other) => {
+                eprintln!("xtask spec: opción desconocida `{other}` (solo `--check`)");
+                ExitCode::from(2)
+            }
+        },
         None | Some("help" | "--help" | "-h") => {
             eprint!("{USAGE}");
             ExitCode::SUCCESS
