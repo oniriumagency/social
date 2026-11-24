@@ -67,6 +67,12 @@ impl Tag {
                 let valid = (1..=MAX_TOPIC_CHARS).contains(&chars)
                     && val.to_lowercase() == val
                     && !val.chars().any(|c| c.is_whitespace() || c.is_control());
+                if valid && !unicode_normalization::is_nfc(val) {
+                    return Err(CoreError::new(
+                        ErrorCode::TextNotNfc,
+                        format!("tags[{index}][1]"),
+                    ));
+                }
                 if !valid {
                     return Err(schema(
                         "una etiqueta t tiene de 1 a 64 caracteres, en minúsculas y sin espacios",
@@ -168,6 +174,14 @@ impl Event {
     /// # Errors
     /// El [`CoreError`] del primer paso que falle, con su código estable.
     pub fn parse_and_verify(bytes: &[u8]) -> Result<Self, CoreError> {
+        let event = Self::parse_unverified(bytes)?;
+        event.verify()?;
+        Ok(event)
+    }
+
+    /// Pasos 1 (tamaño) y 2 (JSON estricto y esquema de la envoltura), sin id ni firma.
+    /// La validación por tipo intercala aquí el esquema del contenido (`docs/06` §3).
+    pub(crate) fn parse_unverified(bytes: &[u8]) -> Result<Self, CoreError> {
         // Paso 1: tamaño, antes de analizar nada.
         if bytes.len() > MAX_EVENT_BYTES {
             return Err(CoreError::new(
@@ -177,21 +191,22 @@ impl Event {
         }
         // Paso 2: JSON estricto y esquema de la envoltura.
         let value = Json::parse(bytes)?;
-        let event = Self::from_json(&value)?;
-        // Paso 3: identificador.
-        if event.unsigned.id() != event.id {
+        Self::from_json(&value)
+    }
+
+    /// Pasos 3 (identificador) y 4 (firma estricta de `signer` sobre los bytes de `id`).
+    pub(crate) fn verify(&self) -> Result<(), CoreError> {
+        if self.unsigned.id() != self.id {
             return Err(CoreError::new(
                 ErrorCode::IdMismatch,
                 "id distinto del calculado",
             ));
         }
-        // Paso 4: firma estricta de `signer` sobre los bytes de `id`.
-        let signer = VerifyingKey::from_bytes(&event.unsigned.signer)
+        let signer = VerifyingKey::from_bytes(&self.unsigned.signer)
             .map_err(|_| CoreError::new(ErrorCode::PublicKeyInvalid, "signer"))?;
         signer
-            .verify_strict(&event.id, &Signature::from_bytes(event.sig))
-            .map_err(|_| CoreError::new(ErrorCode::SigInvalid, "firma inválida para signer"))?;
-        Ok(event)
+            .verify_strict(&self.id, &Signature::from_bytes(self.sig))
+            .map_err(|_| CoreError::new(ErrorCode::SigInvalid, "firma inválida para signer"))
     }
 
     /// Solo el esquema de la envoltura, sin comprobar id ni firma (para vectores).

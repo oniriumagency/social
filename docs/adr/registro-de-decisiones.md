@@ -22,7 +22,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Invariantes y amenazas.** Qué invariante o punto de `04` toca, si toca alguno.
 ```
 
-**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto. ADR-020 es una propuesta de F0-T06.
+**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto. ADR-020 y ADR-021 son propuestas de F0-T06 y F0-T07.
 
 | ADR | Decisión |
 | :-- | :-- |
@@ -46,6 +46,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 | 018 | Puntaje de confianza dinámico, vigilancia por riesgo y verificación adicional |
 | 019 | El piloto es Colombia |
 | 020 | Precisiones de la envoltura v1 (propuesta) |
+| 021 | Reglas de validación por tipo v1 (propuesta) |
 
 ---
 
@@ -223,3 +224,18 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Descartado.** Dejar la profundidad al analizador: cambia con la versión de la biblioteca sin que nadie lo note. Tratar como decimal un entero que no cabe en 64 bits: el código dependería de cómo lo representa el analizador, no del texto. Aceptar llaves de orden mixto: con ellas una firma puede verificar o no según la implementación.
 - **Consecuencias.** Las reglas quedan escritas y probadas; otra implementación puede reproducirlas con los vectores. Un evento con más de 127 niveles es inválido aunque otro analizador pudiera leerlo.
 - **Invariantes y amenazas.** Refuerza I-9 (validación completa). No relaja ninguna invariante.
+
+## ADR-021. Reglas de validación por tipo v1
+
+- **Fecha y estado.** 2026-11-24. Propuesta, pendiente de aceptación del responsable humano. Amplía ADR-007 y ADR-020. Tarea: F0-T07.
+- **Contexto.** `docs/06` §4 da la tabla de tipos, pero al implementar la validación universal hicieron falta reglas que la tabla no fijaba: formatos de cada campo, quién firma cada papel, cómo se consulta una delegación y en qué orden se comprueba todo. Sin ADR, esas reglas serían de facto parte del protocolo sin decisión (revisión del PR de F0-T07). Algunas dependen de los valores por defecto de D-15 (privilegios por nivel).
+- **Decisión.**
+  1. **Esquema estricto por tipo:** en un tipo conocido no hay campos fuera de la tabla (`E_UNKNOWN_FIELD`); textos y etiquetas `t` en NFC (`E_TEXT_NOT_NFC`); formatos de zona, `cid`, `lang` y códigos según `06` §4. Un `cid` tiene una sola escritura: los bits sobrantes del último carácter son cero.
+  2. **Orden:** el esquema y los límites del contenido se comprueban en el paso 2, antes del identificador y la firma, como dice `06` §3.
+  3. **Papeles de firma:** cada papel se comprueba por completo. Solo «Dispositivo» y «Raíz o dispositivo» consultan delegaciones; «Raíz», «Raíz antigua, o registro», «Registro» y «Operador» nunca aceptan un dispositivo, tenga la delegación que tenga.
+  4. **Delegaciones:** `device.grant` no puede conceder un tipo conocido que un dispositivo no firma. La delegación que cuenta es la vigente en `created_at` (la más reciente con `created_at` anterior o igual); renovarla no invalida los eventos anteriores. La revocación vale desde su `created_at`.
+  5. **Nivel:** con los valores por defecto de D-15, el nivel 1 no adjunta imágenes ni avatar (`E_LEVEL_INSUFFICIENT`). Si D-15 cambia, cambia esta regla con sus vectores.
+  6. **Códigos nuevos:** `E_TEXT_NOT_NFC`, `E_LIMIT_EXCEEDED`, `E_SIGNER_ROLE`, `E_DELEGATION_MISSING`, `E_DELEGATION_REVOKED`, `E_DELEGATION_EXPIRED`, `E_DELEGATION_SCOPE`, `E_ATTESTATION_MISSING`, `E_LEVEL_INSUFFICIENT`. Estables, como los de ADR-020.
+- **Descartado.** Confiar en que el almacén nunca guarde delegaciones imposibles: la validación universal no debe depender del almacén de cada participante. Consultar solo la delegación más reciente: renovar invalidaría en silencio eventos ya aceptados.
+- **Consecuencias.** Cualquier participante decide igual con los vectores de `spec/vectors/validation.json`. El almacén de delegaciones guarda el historial, no solo la última. La semántica temporal de la revocación queda abierta (D-18).
+- **Invariantes y amenazas.** Refuerza I-9. Ligado a `04` §6 (núcleo) y a D-18.

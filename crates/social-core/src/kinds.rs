@@ -36,6 +36,14 @@ pub enum SignerRole {
     Operator,
 }
 
+impl SignerRole {
+    /// El papel admite una llave de dispositivo con `device.grant`.
+    #[must_use]
+    pub const fn delegable(self) -> bool {
+        matches!(self, Self::Device | Self::RootOrDevice)
+    }
+}
+
 /// Descripción de un tipo conocido.
 #[derive(Debug, Clone, Copy)]
 pub struct KindSpec {
@@ -252,12 +260,16 @@ fn zone_id(s: &str) -> bool {
 }
 
 /// Identificador de contenido: `b3_` más BLAKE3 en base32 (RFC 4648) en minúsculas sin relleno.
+///
+/// 32 bytes son 256 bits y 52 caracteres llevan 260: los 4 bits sobrantes del último
+/// carácter deben ser cero, para que cada contenido tenga una sola escritura (`a` o `q`).
 fn cid(s: &str) -> bool {
     s.strip_prefix("b3_").is_some_and(|rest| {
         rest.len() == 52
             && rest
                 .bytes()
                 .all(|b| b.is_ascii_lowercase() || (b'2'..=b'7').contains(&b))
+            && rest.ends_with(['a', 'q'])
     })
 }
 
@@ -366,6 +378,10 @@ pub(crate) fn check_content(
                     .ok_or_else(|| schema("caps", "debe ser una lista de tipos"))?;
                 if crate::event::check_kind(cap).is_err() || !unique.insert(cap) {
                     return Err(schema("caps", "tipos válidos y sin repetir"));
+                }
+                // Solo se delega lo que un dispositivo puede firmar (ADR-021).
+                if spec(cap).is_some_and(|s| !s.signer.delegable()) {
+                    return Err(schema("caps", "solo tipos que un dispositivo puede firmar"));
                 }
             }
             if caps.is_empty() || caps.len() > 32 {

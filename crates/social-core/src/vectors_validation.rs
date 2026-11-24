@@ -22,8 +22,8 @@ pub struct MemoryContext {
     pub registry_keys: Vec<[u8; 32]>,
     /// Llaves de operadores.
     pub operator_keys: Vec<[u8; 32]>,
-    /// Delegaciones por (cuenta, dispositivo).
-    pub grants: BTreeMap<([u8; 32], [u8; 32]), DeviceGrant>,
+    /// Historial de delegaciones por (cuenta, dispositivo), en el orden en que se dieron.
+    pub grants: BTreeMap<([u8; 32], [u8; 32]), Vec<DeviceGrant>>,
     /// Atestaciones por cuenta.
     pub attestations: BTreeMap<[u8; 32], Vec<Attestation>>,
 }
@@ -35,8 +35,14 @@ impl ValidationContext for MemoryContext {
     fn is_operator_key(&self, key: &[u8; 32]) -> bool {
         self.operator_keys.contains(key)
     }
-    fn device_grant(&self, account: &[u8; 32], device: &[u8; 32]) -> Option<DeviceGrant> {
-        self.grants.get(&(*account, *device)).cloned()
+    fn device_grant(&self, account: &[u8; 32], device: &[u8; 32], at: i64) -> Option<DeviceGrant> {
+        let history = self.grants.get(&(*account, *device))?;
+        history
+            .iter()
+            .filter(|g| g.granted_at <= at)
+            .max_by_key(|g| g.granted_at)
+            .or_else(|| history.iter().min_by_key(|g| g.granted_at))
+            .cloned()
     }
     fn attestation(&self, account: &[u8; 32], at: i64) -> Option<Attestation> {
         self.attestations
@@ -78,6 +84,8 @@ const DEV_A_REVOKED: u8 = 8;
 const DEV_A_EXPIRED: u8 = 9;
 const DEV_A_REACT_ONLY: u8 = 10;
 const STRANGER: u8 = 11;
+const DEV_A_RENEWED: u8 = 12; // delegación renovada: dos device.grant sucesivos
+const DEV_A_ROOT_CAP: u8 = 13; // delegación con un tipo que un dispositivo no firma
 
 const ALL_DEVICE_KINDS: [&str; 8] = [
     "auth.request",
@@ -160,6 +168,32 @@ fn context_json() -> Json {
                 ),
                 grant(
                     ROOT_A,
+                    DEV_A_RENEWED,
+                    &ALL_DEVICE_KINDS,
+                    T0 - 20 * DAY,
+                    T0 + 10 * DAY,
+                    None,
+                ),
+                grant(
+                    ROOT_A,
+                    DEV_A_RENEWED,
+                    &ALL_DEVICE_KINDS,
+                    T0 - DAY,
+                    T0 + 60 * DAY,
+                    None,
+                ),
+                // Un almacén correcto nunca guarda esta delegación (su device.grant es
+                // inválido), pero el paso 5 no debe depender de ello.
+                grant(
+                    ROOT_A,
+                    DEV_A_ROOT_CAP,
+                    &["account.rotate", "device.grant"],
+                    T0 - DAY,
+                    T0 + 30 * DAY,
+                    None,
+                ),
+                grant(
+                    ROOT_A,
                     DEV_A_REACT_ONLY,
                     &["reaction.set"],
                     T0 - DAY,
@@ -207,18 +241,18 @@ fn load_context(ctx: &Json) -> Option<MemoryContext> {
             .iter()
             .map(|c| c.as_str().map(str::to_owned))
             .collect::<Option<Vec<_>>>()?;
-        out.grants.insert(
-            (
+        out.grants
+            .entry((
                 hex32(g.get("account")?.as_str()?)?,
                 hex32(g.get("device")?.as_str()?)?,
-            ),
-            DeviceGrant {
+            ))
+            .or_default()
+            .push(DeviceGrant {
                 caps,
                 granted_at: g.get("granted_at")?.as_int()?,
                 expires_at: g.get("expires_at")?.as_int()?,
                 revoked_at: g.get("revoked_at").and_then(Json::as_int),
-            },
-        );
+            });
     }
     for a in o.get("attestations")?.as_array()? {
         let a = a.as_object()?;
@@ -537,6 +571,20 @@ fn valid_cases() -> Result<Vec<(&'static str, String)>, CoreError> {
                 obj(vec![("anything", Json::Int(1))]),
             )?,
         ),
+        (
+            "evento anterior a la renovación de la delegación",
+            ev(
+                ROOT_A,
+                DEV_A_RENEWED,
+                T0 - 2 * DAY,
+                "post.create",
+                obj(post("Hola")),
+            )?,
+        ),
+        (
+            "evento posterior a la renovación de la delegación",
+            ev(ROOT_A, DEV_A_RENEWED, T0, "post.create", obj(post("Hola")))?,
+        ),
     ])
 }
 
@@ -845,7 +893,150 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
             )?,
             E::LevelInsufficient,
         ),
+        // Precisiones de la revisión de F0-T07 (ADR-021).
+        (
+            "account.rotate firmado por un dispositivo",
+            ev(
+                ROOT_A,
+                DEV_A_ROOT_CAP,
+                T0,
+                "account.rotate",
+                obj(vec![
+                    ("new_account", pkh(STRANGER).into()),
+                    ("effective_at", Json::Int(T0 + ROTATE_DELAY)),
+                ]),
+            )?,
+            E::SignerRole,
+        ),
+        (
+            "device.grant firmado por un dispositivo",
+            ev(
+                ROOT_A,
+                DEV_A_ROOT_CAP,
+                T0,
+                "device.grant",
+                grant_root_cap(STRANGER, "post.create"),
+            )?,
+            E::SignerRole,
+        ),
+        (
+            "device.grant que delega account.rotate",
+            ev(
+                ROOT_A,
+                ROOT_A,
+                T0,
+                "device.grant",
+                grant_root_cap(STRANGER, "account.rotate"),
+            )?,
+            E::Schema,
+        ),
+        (
+            "device.grant que delega account.attest",
+            ev(
+                ROOT_A,
+                ROOT_A,
+                T0,
+                "device.grant",
+                grant_root_cap(STRANGER, "account.attest"),
+            )?,
+            E::Schema,
+        ),
+        (
+            "esquema del tipo antes que la firma",
+            flip_sig(&ev(
+                ROOT_A,
+                DEV_A,
+                T0,
+                "post.create",
+                with(post("Hola"), vec![("extra", Json::Bool(true))]),
+            )?),
+            E::UnknownField,
+        ),
+        (
+            "cid con bits sobrantes distintos de cero",
+            ev(
+                ROOT_A,
+                DEV_A,
+                T0,
+                "post.create",
+                with(
+                    post("Hola"),
+                    vec![("media", Json::Array(vec![cid_with_last('r').into()]))],
+                ),
+            )?,
+            E::Schema,
+        ),
+        (
+            "etiqueta t sin NFC",
+            ev_unchecked(
+                ROOT_A,
+                DEV_A,
+                T0,
+                "post.create",
+                vec![Tag::Topic("cafe\u{301}".into())],
+                obj(post("Hola")),
+            ),
+            E::TextNotNfc,
+        ),
     ])
+}
+
+fn grant_root_cap(device: u8, cap: &str) -> Json {
+    obj(vec![
+        ("device", pkh(device).into()),
+        ("caps", Json::Array(vec![cap.into()])),
+        ("expires_at", Json::Int(T0 + DAY)),
+        ("label", "Teléfono".into()),
+    ])
+}
+
+/// Cambia el primer carácter hexadecimal de la firma.
+fn flip_sig(event: &str) -> String {
+    const SIG: &str = "\"sig\":\"";
+    match event.find(SIG) {
+        Some(i) => {
+            let at = i + SIG.len();
+            let flipped = if event[at..].starts_with('0') {
+                "1"
+            } else {
+                "0"
+            };
+            format!("{}{flipped}{}", &event[..at], &event[at + 1..])
+        }
+        None => event.to_owned(),
+    }
+}
+
+fn cid_with_last(last: char) -> String {
+    let mut s = CID[..CID.len() - 1].to_owned();
+    s.push(last);
+    s
+}
+
+/// Firma sin la validación de `sign`, para eventos que la envoltura rechaza.
+fn ev_unchecked(
+    account: u8,
+    signer: u8,
+    at: i64,
+    kind: &str,
+    tags: Vec<Tag>,
+    content: Json,
+) -> String {
+    let content = match content {
+        Json::Object(m) => m,
+        _ => BTreeMap::new(),
+    };
+    UnsignedEvent {
+        account: pk(account),
+        signer: pk(signer),
+        created_at: at,
+        kind: kind.into(),
+        tags,
+        content,
+    }
+    .sign_unchecked(&key(signer))
+    .to_json()
+    .to_canonical_string()
 }
 
 /// Genera `spec/vectors/validation.json`.
