@@ -21,7 +21,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-15 | Privilegios por nivel; en particular, si el nivel 2 puede ganar puntos | Solo nivel 3 gana puntos | F2-T10, F4 | Pendiente |
 | D-16 | Política de retos: frecuencia, plazos y efecto en el puntaje | Valores de `05` §6.2 | F2-T24 | Pendiente de calibrar |
 | D-17 | Exigir que los eventos viajen en su forma canónica exacta | Forma canónica obligatoria | — | **Decidida el 2026-11-24** |
-| D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente |
+| D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente; propuesta del responsable el 2026-11-24 |
 
 ---
 
@@ -114,6 +114,18 @@ Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; 
 ## D-18. Revocación y eventos fechados antes
 
 Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` igual o posterior a ella, y `created_at` lo pone quien firma. El único freno a un evento fechado antes de la revocación es el reloj de la ingesta (paso 7), que nodos, indexadores y clientes no aplican. Hay que decidir antes de F3, cuando los nodos reenvían eventos sin pasar por la pasarela, cómo se trata ese caso (riesgo anotado en `04` §6).
+
+**Ejemplo.** A alguien le roban el teléfono el lunes y revoca ese dispositivo el jueves. El viernes, quien tiene el teléfono firma una publicación y le pone fecha del martes. Como el martes la delegación seguía vigente, un nodo que reciba ese evento lo acepta. La pasarela lo rechaza por el reloj de la ingesta, pero un nodo que lo reenvía en F3 no tiene ese freno.
+
+**Propuesta del responsable (2026-11-24).** Cuando la persona reporta el robo, indica desde cuándo perdió el teléfono (el lunes, en el ejemplo). La app le muestra toda la actividad firmada por ese dispositivo desde esa fecha hasta el reporte, y le deja decidir: borrar todo, borrar algunas publicaciones o conservarlas.
+
+**Lo que esa pantalla resuelve y lo que no.** Resuelve lo que ya se publicó entre el lunes y el jueves: la persona lo ve y lo borra con `post.delete`. No resuelve el ejemplo del viernes: un evento firmado después del reporte con fecha anterior aparece cuando la persona ya revisó su actividad, y sigue siendo válido para los nodos. Para cerrarlo hace falta, además, una regla del protocolo. Opciones:
+
+- **A. Solo la pantalla de revisión.** Simple, pero deja abierto el caso del viernes.
+- **B. Revocación con fecha «desde».** `device.revoke` lleva la fecha que la persona indica al reportar (el lunes). Todo evento de ese dispositivo con `created_at` igual o posterior a esa fecha deja de ser válido, en la pasarela y en cualquier nodo, porque la regla solo depende de datos firmados. Lo que la persona quiera conservar de ese intervalo, la app lo vuelve a publicar desde su teléfono nuevo, marcado como «publicado originalmente el …». Cierra el caso del viernes; el costo es que lo conservado pierde sus respuestas y reacciones, porque cambia su identificador.
+- **C. Ventana de llegada.** Se acepta un evento fechado antes de la revocación solo si llega pocas horas después de ella. Sirve en la pasarela, pero un nodo no sabe cuándo llegó un evento a otro nodo, así que no se puede aplicar igual en toda la red.
+
+**Recomendación:** la pantalla de revisión del responsable más la opción B. La pantalla es la forma de decidir qué conservar y la fecha «desde» hace que esa decisión valga en toda la red. Cambia el protocolo (`06` §4, ADR, esquemas y vectores), así que se implementa con su tarea antes de F3, no ahora.
 
 ---
 
