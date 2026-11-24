@@ -32,7 +32,7 @@
 | F0-T08 | Núcleo en WASM | pendiente | | | |
 | F0-T09 | Esquemas y deriva | pendiente | | | |
 | F0-T10 | Fuzzing | pendiente | | | |
-| F0-T11 | Comprobación de reglas de agentes | pendiente | | | |
+| F0-T11 | Comprobación de reglas de agentes | en revisión | Claude Code | `tarea/F0-T11-reglas-en-ci` | 2026-11-24 |
 | F0-S1 | Spike: prueba de humanidad (Colombia) | pendiente | | | |
 | F0-S2 | Spike: red entre nodos | pendiente | | | |
 | F0-S3 | Spike: zonas | pendiente | | | |
