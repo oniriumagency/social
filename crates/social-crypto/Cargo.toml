@@ -1,0 +1,32 @@
+[package]
+name = "social-crypto"
+description = "Único punto de acceso a criptografía del proyecto Social (I-8)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# Solo este crate puede depender de bibliotecas criptográficas (deny.toml, I-8).
+# Toda dependencia nueva aquí exige aprobación humana (I-15).
+[dependencies]
+blake3 = { version = "1.8.7", default-features = false, features = ["std"] }
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc"] }
+ed25519-dalek = { version = "3.0.0", default-features = false, features = ["fast", "zeroize"] }
+getrandom = "0.4.3"
+hkdf = "0.13.0"
+sha2 = { version = "0.11.1", default-features = false }
+subtle = { version = "2.6.1", default-features = false }
+zeroize = { version = "1.9.2", features = ["derive"] }
+
+# En el navegador (wasm32-unknown-unknown) la aleatoriedad viene de `crypto.getRandomValues`.
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+
+[dev-dependencies]
+hex = "0.4.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+static_assertions = "1.1.0"
