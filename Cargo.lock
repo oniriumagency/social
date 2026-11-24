@@ -660,6 +660,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "social-core-wasm"
+version = "0.0.0"
+dependencies = [
+ "social-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "social-crypto"
 version = "0.0.0"
 dependencies = [

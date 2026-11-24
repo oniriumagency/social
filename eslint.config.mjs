@@ -12,12 +12,13 @@ export default [
       "**/.turbo/**",
       "**/pkg/**",
       "apps/**",
-      "packages/*/src/**",
+      "packages/*/src/generated/**",
     ],
   },
   ...base,
   {
-    files: ["scripts/**/*.mjs", ".githooks/*", "*.mjs"],
-    languageOptions: { globals: globals.node },
+    files: ["scripts/**/*.mjs", ".githooks/*", "*.mjs", "packages/*/test/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    rules: { "no-console": "off" },
   },
 ];

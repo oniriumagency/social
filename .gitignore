@@ -26,6 +26,7 @@ coverage/
 
 # WASM generado
 crates/social-core-wasm/pkg/
+packages/core/src/generated/
 
 # Tauri
 apps/desktop/src-tauri/target/

@@ -10,3 +10,4 @@ spec/schemas/
 spec/openapi/
 spec/vectors/
 crates/social-core-wasm/pkg/
+packages/core/src/generated/

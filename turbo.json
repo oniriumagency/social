@@ -3,16 +3,30 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "src/generated/**"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../crates/**/*.rs",
+        "../../crates/**/Cargo.toml",
+        "../../Cargo.lock",
+        "../../Cargo.toml",
+        "../../rust-toolchain.toml",
+        "../../scripts/build-wasm.mjs"
+      ]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
+    },
+    "test:vectors": {
+      "dependsOn": ["build"],
+      "cache": false
     }
-  }
+  },
+  "globalPassThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH", "CI"]
 }

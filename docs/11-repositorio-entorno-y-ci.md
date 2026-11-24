@@ -96,7 +96,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 
 | Orden | Qué hace |
 | :-- | :-- |
-| `pnpm bootstrap` | Instala dependencias, compila el núcleo WASM, prepara ganchos de git. |
+| `pnpm bootstrap` | Instala dependencias, `cargo-deny`, `wasm-bindgen-cli` (versión fijada) y Chromium para pruebas; compila el núcleo WASM en `packages/core/src/generated/`; prepara ganchos de git. |
 | `pnpm dev:infra` | Levanta PostgreSQL y el almacenamiento S3 local (SeaweedFS) con Docker Compose. Acciones: `down`, `reset`, `status`. |
 | `pnpm dev` | Arranca pasarela y web en modo desarrollo. |
 | `pnpm dev:desktop` | Arranca la app de escritorio. |
@@ -104,7 +104,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm lint` | `cargo clippy` con avisos como errores, y ESLint. |
 | `pnpm typecheck` | `cargo check` y `tsc`. |
 | `pnpm test` | Pruebas unitarias y de integración de Rust y TypeScript. |
-| `pnpm test:vectors` | Vectores dorados en nativo y en WASM. |
+| `pnpm test:vectors` | Vectores dorados en nativo, en WASM sobre Node y en WASM dentro de Chromium (Playwright). |
 | `pnpm test:e2e` | Playwright. |
 | `pnpm db:migrate` | Aplica migraciones. |
 | `pnpm spec:gen` | Regenera esquemas y OpenAPI. |
@@ -135,7 +135,7 @@ GitHub Actions. Matriz en `ubuntu-latest` y `windows-latest`; `macos-latest` par
 | Trabajo | Contenido |
 | :-- | :-- |
 | `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados (`pnpm check:rust`) |
-| `wasm` | Compilación del núcleo a WASM y vectores en Node y en navegador |
+| `wasm` | Compilación del núcleo a WASM y vectores en nativo, Node y navegador (`pnpm test:vectors`) |
 | `ts` | ESLint, tsc, Vitest |
 | `e2e` | Playwright contra pasarela y base de datos efímeras |
 | `spec` | Regenerar esquemas y OpenAPI; falla si hay diferencias |
