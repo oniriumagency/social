@@ -10,7 +10,7 @@ El desarrollo principal ocurre en **Windows**. Todo debe funcionar igual en Wind
 | Rust (rustup, canal estable fijado en `rust-toolchain.toml`) | Núcleo, servicios, nodo |
 | Destino `wasm32-unknown-unknown` y `wasm-pack` | Núcleo para web |
 | Node.js LTS y pnpm (versión fijada en `package.json`) | Web e interfaz |
-| Docker Desktop | PostgreSQL y MinIO en local |
+| Docker Desktop | PostgreSQL y almacenamiento S3 (SeaweedFS) en local |
 | Requisitos de Tauri 2 para el sistema (WebView2 y herramientas de compilación de C++ en Windows) | Escritorio |
 | `sqlx-cli`, `cargo-deny` | Base de datos y calidad (`pnpm bootstrap` instala `cargo-deny`) |
 | `gitleaks` (opcional en local) | Escáner de secretos; CI lo ejecuta siempre |
@@ -97,7 +97,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | Orden | Qué hace |
 | :-- | :-- |
 | `pnpm bootstrap` | Instala dependencias, compila el núcleo WASM, prepara ganchos de git. |
-| `pnpm dev:infra` | Levanta PostgreSQL y MinIO con Docker Compose. |
+| `pnpm dev:infra` | Levanta PostgreSQL y el almacenamiento S3 local (SeaweedFS) con Docker Compose. Acciones: `down`, `reset`, `status`. |
 | `pnpm dev` | Arranca pasarela y web en modo desarrollo. |
 | `pnpm dev:desktop` | Arranca la app de escritorio. |
 | `pnpm fmt` | Formatea Rust y TypeScript. |
