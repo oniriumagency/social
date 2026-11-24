@@ -15,10 +15,18 @@ export type CoreSource = Parameters<typeof initWasm>[0];
 
 let ready: Promise<void> | undefined;
 
-/** Carga el núcleo WASM. Llamarla varias veces es seguro. */
+/**
+ * Carga el núcleo WASM. Llamarla varias veces es seguro: tras una carga correcta, las
+ * llamadas siguientes no hacen nada y su `source` se ignora. Si la carga falla, la
+ * siguiente llamada lo vuelve a intentar.
+ */
 export function initCore(source?: CoreSource): Promise<void> {
   ready ??= initWasm(source === undefined ? undefined : { module_or_path: source }).then(
     () => undefined,
+    (err: unknown) => {
+      ready = undefined;
+      throw err;
+    },
   );
   return ready;
 }
@@ -55,9 +63,21 @@ export function protocolVersion(): number {
 /**
  * Valida tamaño, esquema de la envoltura, identificador y firma (pasos 1 a 4 de
  * `docs/06` §3). Devuelve el evento en JSON canónico o lanza `CoreError`.
+ *
+ * Usa siempre la cadena devuelta, no la de entrada: una cadena de JavaScript con un
+ * sustituto suelto llega al núcleo con U+FFFD en su lugar. Para lo recibido de la red,
+ * usa `verifyEnvelopeBytes`.
  */
 export function verifyEnvelope(eventJson: string): string {
   return call(() => wasm.verifyEnvelope(eventJson));
+}
+
+/**
+ * Como `verifyEnvelope`, sobre los bytes exactos recibidos de la red: el núcleo valida
+ * lo que llegó, incluido el UTF-8 inválido, que rechaza con `E_JSON_INVALID`.
+ */
+export function verifyEnvelopeBytes(event: Uint8Array): string {
+  return call(() => wasm.verifyEnvelopeBytes(event));
 }
 
 /** Identificador hexadecimal de un evento verificado, o lanza `CoreError`. */

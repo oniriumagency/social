@@ -137,3 +137,10 @@ fn error_codes_are_stable() {
         "E_CRYPTO_SIGNATURE"
     );
 }
+
+// I-3, docs/14 §8.3: las copias de material secreto dentro de las dependencias también se
+// borran al liberarse. Si alguien quita la característica `zeroize` de una dependencia,
+// esto deja de compilar.
+static_assertions::assert_impl_all!(chacha20poly1305::XChaCha20Poly1305: zeroize::ZeroizeOnDrop);
+static_assertions::assert_impl_all!(ed25519_dalek::SigningKey: zeroize::ZeroizeOnDrop);
+static_assertions::assert_impl_all!(sha2::Sha256: zeroize::ZeroizeOnDrop);
