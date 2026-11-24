@@ -18,6 +18,7 @@ pub mod kinds;
 pub mod schema;
 mod validate;
 pub mod vectors;
+pub mod vectors_ids;
 mod vectors_validation;
 
 pub use error::{CoreError, ErrorCode};

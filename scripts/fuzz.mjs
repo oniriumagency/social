@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const isWindows = process.platform === "win32";
 const fuzzDir = join(root, "fuzz");
-const TARGETS = ["json_parse", "event_parse", "event_validate"];
+const TARGETS = ["json_parse", "event_parse", "event_validate", "event_build"];
 
 const args = process.argv.slice(2).filter((a) => a !== "--");
 const targets = args[0] ? [args[0]] : TARGETS;
@@ -35,11 +35,12 @@ if (probe.status !== 0) {
   process.exit(1);
 }
 
-// Semillas: cada evento de los vectores dorados, válido o inválido.
+// Semillas: cada evento de los vectores dorados, de todas las listas. `event_build`
+// interpreta los bytes como decisiones, no como JSON: le sirven igual de punto de partida.
 const seeds = [];
-for (const file of ["envelope.json", "validation.json"]) {
+for (const file of ["envelope.json", "validation.json", "ids.json"]) {
   const suite = JSON.parse(readFileSync(join(root, "spec", "vectors", file), "utf8"));
-  for (const v of [...suite.valid, ...suite.invalid]) {
+  for (const v of [...(suite.valid ?? []), ...(suite.invalid ?? []), ...(suite.accept ?? [])]) {
     seeds.push(v.event ?? v.expect?.event);
   }
 }

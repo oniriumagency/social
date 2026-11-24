@@ -14,7 +14,10 @@ use social_crypto::{SecretKey32, SigningKey};
 
 use crate::{CoreError, ErrorCode, Event, Json, Tag, UnsignedEvent};
 
-pub use crate::vectors_validation::{MemoryContext, generate_validation_suite, load_context};
+pub use crate::vectors_validation::{
+    CID, MemoryContext, T0, TEST_KEYS, ZONE, generate_validation_suite, load_context,
+    sign_with_test_key, test_public_key,
+};
 
 /// Resultado de ejecutar un archivo de vectores.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -198,15 +201,17 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
     let id_hex = hex::encode(base.id());
     let root = hex::encode(test_key(1).verifying_key().to_bytes());
 
-    let resign = |mut u: UnsignedEvent| -> Result<String, CoreError> {
-        u.signer = u.account;
-        Ok(u.sign(&test_key(1))?.to_json().to_canonical_string())
-    };
-
+    // Firmado a mano: `sign` rechaza, con razón, un evento de más de 16 KiB.
     let mut big = base.unsigned().clone();
     big.content
         .insert("text".into(), "a".repeat(crate::MAX_EVENT_BYTES).into());
-    let big = resign(big)?;
+    let big = big
+        .sign_unchecked(&test_key(1))
+        .to_json()
+        .to_canonical_string();
+
+    // Envoltura (nivel 1) y content (nivel 2): 126 listas más llegan a 128 niveles.
+    let too_deep = nested_arrays(crate::json::MAX_DEPTH - 1);
 
     let mut flipped = base.sig().to_owned();
     flipped[0] ^= 1;
@@ -255,7 +260,12 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
         ),
         (
             "campo extra en la envoltura",
-            replace_once(&s, "\"v\":1", "\"v\":1,\"extra\":true")?,
+            // En su posición canónica: con D-17, fuera de orden sería E_JSON_NOT_CANONICAL.
+            replace_once(
+                &s,
+                &format!(",\"id\":\"{id_hex}\""),
+                &format!(",\"extra\":true,\"id\":\"{id_hex}\""),
+            )?,
             ErrorCode::UnknownField,
         ),
         (
@@ -330,7 +340,68 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
             replace_once(&s, &sig_hex, &hex::encode(other_sig))?,
             ErrorCode::SigInvalid,
         ),
+        (
+            "entero que no cabe en 64 bits",
+            replace_once(&s, "1790000000", "18446744073709551616")?,
+            ErrorCode::JsonIntRange,
+        ),
+        (
+            "menos cero",
+            replace_once(&s, "1790000000", "-0")?,
+            ErrorCode::JsonFloat,
+        ),
+        (
+            "anidamiento de 128 niveles",
+            replace_once(
+                &s,
+                "\"lang\":\"es\"",
+                &format!("\"deep\":{too_deep},\"lang\":\"es\""),
+            )?,
+            ErrorCode::JsonInvalid,
+        ),
+        // Forma canónica en el cable (D-17, ADR-020 punto 11).
+        (
+            "espacio después de dos puntos",
+            replace_once(&s, "\"v\":1", "\"v\": 1")?,
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "claves fuera de orden",
+            format!(
+                "{{\"v\":1,{}",
+                replace_once(&s, ",\"v\":1}", "}")?.trim_start_matches('{')
+            ),
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "salto de línea al final",
+            format!("{s}\n"),
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "escape innecesario en una cadena",
+            replace_once(&s, "\"text\":\"hola\"", "\"text\":\"hol\\u0061\"")?,
+            ErrorCode::JsonNotCanonical,
+        ),
     ])
+}
+
+fn nested_arrays(levels: usize) -> String {
+    format!("{}{}", "[".repeat(levels), "]".repeat(levels))
+}
+
+/// Eventos válidos que no caben en `input` porque el propio archivo de vectores
+/// superaría la profundidad máxima: se dan solo en su forma de cable.
+fn accept_cases() -> Result<Vec<(&'static str, String)>, CoreError> {
+    let mut deep = base_event()?.unsigned().clone();
+    // Envoltura (nivel 1), content (nivel 2) y 125 listas: 127 niveles, el máximo.
+    let mut value = Json::Array(vec![]);
+    for _ in 1..crate::json::MAX_DEPTH - 2 {
+        value = Json::Array(vec![value]);
+    }
+    deep.content.insert("deep".into(), value);
+    let deep = deep.sign(&test_key(1))?.to_json().to_canonical_string();
+    Ok(vec![("anidamiento de 127 niveles", deep)])
 }
 
 /// Genera el archivo `spec/vectors/envelope.json` (JSON canónico más salto de línea final).
@@ -390,6 +461,16 @@ pub fn generate_envelope_suite() -> Result<String, CoreError> {
             ]))
         })
         .collect();
+    let accept = accept_cases()?
+        .into_iter()
+        .map(|(name, raw)| {
+            Json::Object(obj(&[
+                ("name", name.into()),
+                ("event", raw.into()),
+                ("expect", Json::Object(obj(&[("valid", Json::Bool(true))]))),
+            ]))
+        })
+        .collect();
     let suite = Json::Object(obj(&[
         ("suite", "envelope".into()),
         ("protocol", Json::Int(crate::PROTOCOL_VERSION)),
@@ -399,6 +480,7 @@ pub fn generate_envelope_suite() -> Result<String, CoreError> {
         ),
         ("valid", Json::Array(valid)),
         ("invalid", Json::Array(invalid)),
+        ("accept", Json::Array(accept)),
     ]));
     let mut text = suite.to_canonical_string();
     text.push('\n');
@@ -437,6 +519,12 @@ pub fn run_suite(text: &str) -> SuiteReport {
     }
     for vector in list("invalid") {
         match check_invalid(&vector) {
+            Ok(()) => report.passed += 1,
+            Err(e) => report.failures.push(e),
+        }
+    }
+    for vector in list("accept") {
+        match check_accept(&vector) {
             Ok(()) => report.passed += 1,
             Err(e) => report.failures.push(e),
         }
@@ -502,4 +590,20 @@ fn check_invalid(vector: &Json) -> Result<(), String> {
             e.code
         )),
     }
+}
+
+fn check_accept(vector: &Json) -> Result<(), String> {
+    let name = get_str(vector, &["name"])?;
+    let raw = get_str(vector, &["event"])?;
+    let event = Event::parse_and_verify(raw.as_bytes())
+        .map_err(|e| format!("[aceptar] {name}: rechazado: {e}"))?;
+    if event.to_json().to_canonical_string() != raw {
+        return Err(format!("[aceptar] {name}: serialización canónica distinta"));
+    }
+    if let Some(id) = get(vector, &["expect", "id"]).and_then(Json::as_str)
+        && hex::encode(event.id()) != id
+    {
+        return Err(format!("[aceptar] {name}: id distinto"));
+    }
+    Ok(())
 }

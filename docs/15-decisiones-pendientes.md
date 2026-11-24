@@ -20,6 +20,8 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-14 | Insignia de nivel visible y filtro por nivel | Visible, con filtro | F2-T10 | Pendiente |
 | D-15 | Privilegios por nivel; en particular, si el nivel 2 puede ganar puntos | Solo nivel 3 gana puntos | F2-T10, F4 | Pendiente |
 | D-16 | Política de retos: frecuencia, plazos y efecto en el puntaje | Valores de `05` §6.2 | F2-T24 | Pendiente de calibrar |
+| D-17 | Exigir que los eventos viajen en su forma canónica exacta | Forma canónica obligatoria | — | **Decidida el 2026-11-24** |
+| D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente |
 
 ---
 
@@ -98,6 +100,16 @@ Qué se retira y con qué proceso. Debe existir antes de admitir invitados reale
 
 Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; +5, −5 y −15 puntos) son puntos de partida razonables, sin datos reales detrás. Se calibran en la beta: si los retos molestan a usuarios legítimos se espacian, y si no frenan a las granjas se intensifican en el tramo bajo.
 
+## D-17. Forma canónica en el cable — DECIDIDA
+
+**Decisión del responsable (2026-11-24):** se exige la forma canónica en el cable. Un evento cuyos bytes no son exactamente su JCS se rechaza con `E_JSON_NOT_CANONICAL` (ADR-020 punto 11, `06` §1 y §3). En sus palabras: tiene más sentido que las aplicaciones de terceros que quieran usar la red se acojan a sus normas.
+
+**Contexto de la decisión.** Hoy un receptor acepta un evento con cualquier espaciado u orden de claves, porque el identificador se calcula sobre la forma canónica. Eso hace que el límite de 16 KiB dependa de cómo se serializó. Opciones: rechazar el evento si sus bytes no son exactamente su JCS (recomendada en la revisión de F0-T06: el límite queda inequívoco y nadie puede alterar el formato de un evento firmado), o medir el límite sobre la forma canónica. Cualquiera de las dos es una regla de protocolo: se añade a ADR-020, `06` §3 y los vectores.
+
+## D-18. Revocación y eventos fechados antes
+
+Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` igual o posterior a ella, y `created_at` lo pone quien firma. El único freno a un evento fechado antes de la revocación es el reloj de la ingesta (paso 7), que nodos, indexadores y clientes no aplican. Hay que decidir antes de F3, cuando los nodos reenvían eventos sin pasar por la pasarela, cómo se trata ese caso (riesgo anotado en `04` §6).
+
 ---
 
 ## Registro de decisiones tomadas
@@ -109,3 +121,4 @@ Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; 
 | 2026-11-23 | — | Puntaje de confianza dinámico: sube al superar verificaciones, baja al fallarlas o ignorarlas. Las cuentas de puntaje bajo se vigilan más y reciben más verificaciones al azar. | `05` §6, `06`, `10`, `12`, `14`, ADR-018 |
 | 2026-11-24 | D-01 | El piloto es Colombia. Ciudad por defecto: Bogotá, pendiente de confirmar. Verificarse nunca se premia. | `00`, `01`, `04`, `05` §5.1, `07` §2.1, `09`, `10` §6, `12`, `14`, `16`, ADR-019, `CLAUDE.md`, `ANTIGRAVITY.md` |
 | 2026-11-24 | D-01 | Ciudad piloto confirmada: Bogotá. | `01`, `12`, `15`, ADR-019, `PROGRESO.md` |
+| 2026-11-24 | D-17 | Los eventos solo son válidos en su forma canónica JCS exacta (`E_JSON_NOT_CANONICAL`). | `06` §1 y §3, `15`, ADR-020, `spec/vectors/envelope.json`, `PROGRESO.md` |

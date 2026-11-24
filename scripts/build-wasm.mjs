@@ -5,7 +5,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,5 +53,15 @@ if (!existsSync(wasm)) {
   console.error(`build-wasm: no se generó ${wasm}.`);
   process.exit(1);
 }
-run("wasm-bindgen", ["--target", "web", "--out-dir", outDir, "--out-name", "social_core", wasm]);
+// Rutas relativas a `root` (el cwd): con `shell` en Windows, una ruta absoluta con
+// espacios se partiría en varios argumentos.
+run("wasm-bindgen", [
+  "--target",
+  "web",
+  "--out-dir",
+  relative(root, outDir),
+  "--out-name",
+  "social_core",
+  relative(root, wasm),
+]);
 console.log(`build-wasm: listo en ${outDir}`);

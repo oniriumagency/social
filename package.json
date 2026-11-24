@@ -30,6 +30,7 @@
     "check:rust": "node scripts/run.mjs check:rust",
     "check:ts": "node scripts/run.mjs check:ts",
     "check:supply": "node scripts/run.mjs check:supply",
+    "check:fuzz": "node scripts/run.mjs check:fuzz",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check": "node scripts/run.mjs check"
   },

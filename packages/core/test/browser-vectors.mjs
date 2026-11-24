@@ -3,21 +3,28 @@
 // Sirve el núcleo generado y spec/vectors/ desde un servidor local efímero en 127.0.0.1,
 // abre una página que no carga nada de terceros (I-6) y ejecuta cada suite.
 
-import { createServer } from "node:http";
+import { createServer, request } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize, sep } from "node:path";
+import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const SUITES = { "envelope.json": 25, "validation.json": 51 };
+const SUITES = { "envelope.json": 33, "validation.json": 63, "ids.json": 128 };
 const TYPES = {
   ".js": "text/javascript",
   ".wasm": "application/wasm",
   ".json": "application/json",
 };
-const ALLOWED = ["packages/core/src/generated/", "spec/vectors/"];
+// Lista cerrada de rutas exactas: el servidor no resuelve nada más del disco.
+const FILES = new Map(
+  [
+    "packages/core/src/generated/social_core.js",
+    "packages/core/src/generated/social_core_bg.wasm",
+    ...Object.keys(SUITES).map((name) => `spec/vectors/${name}`),
+  ].map((path) => [`/${path}`, join(root, path)]),
+);
 
 const page = `<!doctype html><meta charset="utf-8"><title>vectores</title>
 <script type="module">
@@ -32,18 +39,15 @@ const page = `<!doctype html><meta charset="utf-8"><title>vectores</title>
 </script>`;
 
 const server = createServer(async (req, res) => {
-  const path = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname).slice(1);
-  if (path === "") {
+  // Se compara la ruta tal como llega, sin decodificar: `%2f` o `..` nunca coinciden.
+  const path = new URL(req.url ?? "/", "http://x").pathname;
+  if (path === "/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(page);
     return;
   }
-  const file = normalize(join(root, path));
-  if (
-    !file.startsWith(root) ||
-    !ALLOWED.some((p) => path.startsWith(p)) ||
-    file.includes(`..${sep}`)
-  ) {
+  const file = FILES.get(path);
+  if (file === undefined) {
     res.writeHead(404).end();
     return;
   }
@@ -60,6 +64,27 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
 const browser = await chromium.launch();
 let failed = false;
+// Prueba negativa: nada fuera de la lista, ni con barras codificadas ni con `..`.
+for (const probe of [
+  "/spec/vectors/..%2f..%2fpackage.json",
+  "/spec/vectors/%2e%2e/%2e%2e/package.json",
+  "/spec/vectors/../../package.json",
+  "/package.json",
+  "/spec/vectors/",
+]) {
+  const status = await new Promise((resolve, reject) => {
+    const r = request({ host: "127.0.0.1", port, path: probe }, (res) => {
+      res.resume();
+      resolve(res.statusCode);
+    });
+    r.on("error", reject);
+    r.end();
+  });
+  if (status !== 404) {
+    console.error(`✖ el servidor de pruebas respondió ${status} a ${probe}`);
+    failed = true;
+  }
+}
 try {
   const tab = await browser.newPage();
   const external = [];

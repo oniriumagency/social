@@ -41,8 +41,11 @@ pub trait ValidationContext {
     fn is_registry_key(&self, key: &[u8; 32]) -> bool;
     /// La llave pertenece a un operador de moderación.
     fn is_operator_key(&self, key: &[u8; 32]) -> bool;
-    /// Delegación de `device` por `account`, si existe.
-    fn device_grant(&self, account: &[u8; 32], device: &[u8; 32]) -> Option<DeviceGrant>;
+    /// Delegación de `device` por `account` en el instante `at`: la del `device.grant`
+    /// más reciente con `created_at <= at`, con la revocación que le aplique; si todas
+    /// son posteriores a `at`, la primera (el evento queda fuera de vigencia). Renovar
+    /// una delegación no cambia la que valía para eventos anteriores.
+    fn device_grant(&self, account: &[u8; 32], device: &[u8; 32], at: i64) -> Option<DeviceGrant>;
     /// Atestación de `account` vigente en el instante `at`, si existe.
     fn attestation(&self, account: &[u8; 32], at: i64) -> Option<Attestation>;
 }
@@ -50,36 +53,53 @@ pub trait ValidationContext {
 /// Nivel mínimo para publicar contenido con imágenes (`docs/05` §4).
 pub const MIN_LEVEL_MEDIA: u8 = 2;
 
-/// Analiza y valida un evento recibido: pasos 1 a 6 de `docs/06` §3 y límites del tipo.
+/// Analiza y valida un evento recibido: pasos 1 a 6 de `docs/06` §3 y límites del tipo,
+/// en el orden del documento (el esquema del tipo antes del id y la firma).
 ///
 /// # Errors
 /// El [`CoreError`] del primer paso que falle, con su código estable.
 pub fn validate_event(bytes: &[u8], ctx: &dyn ValidationContext) -> Result<Event, CoreError> {
-    // Pasos 1 a 4: tamaño, esquema de la envoltura, id y firma.
-    let event = Event::parse_and_verify(bytes)?;
-    validate_parsed(&event, ctx)?;
+    // Pasos 1 y 2: tamaño y esquema de la envoltura.
+    let event = Event::parse_unverified(bytes)?;
+    // Paso 2 (tipo): esquema del contenido y límites del tipo.
+    let facts = check_kind_content(&event)?;
+    // Pasos 3 y 4: identificador y firma estricta.
+    event.verify()?;
+    check_authority(&event, &facts, ctx)?;
     Ok(event)
 }
 
-/// Pasos 2 (esquema del tipo), 5 y 6, y límites del tipo, sobre un evento ya verificado.
+/// Paso 2 (esquema del tipo), 5 y 6, y límites del tipo, sobre un evento ya verificado.
 ///
 /// # Errors
 /// El [`CoreError`] del primer paso que falle.
 pub fn validate_parsed(event: &Event, ctx: &dyn ValidationContext) -> Result<(), CoreError> {
+    let facts = check_kind_content(event)?;
+    check_authority(event, &facts, ctx)
+}
+
+fn check_kind_content(event: &Event) -> Result<kinds::ContentFacts, CoreError> {
+    kinds::check_content(
+        event.kind(),
+        event.created_at(),
+        &hex::encode(event.signer()),
+        event.content(),
+    )
+}
+
+/// Pasos 5 (quién firma) y 6 (atestación y nivel).
+fn check_authority(
+    event: &Event,
+    facts: &kinds::ContentFacts,
+    ctx: &dyn ValidationContext,
+) -> Result<(), CoreError> {
     let account = event.account();
     let signer = event.signer();
     let created_at = event.created_at();
     let spec = kinds::spec(event.kind());
 
-    // Paso 2 (tipo): esquema del contenido y límites del tipo (`docs/06` §4).
-    let facts = kinds::check_content(
-        event.kind(),
-        created_at,
-        &hex::encode(signer),
-        event.content(),
-    )?;
-
-    // Paso 5: quién firma.
+    // Paso 5: quién firma. Cada papel se trata por completo en su rama: solo los tipos
+    // de dispositivo consultan la delegación.
     let role = spec.map_or(SignerRole::RootOrDevice, |s| s.signer);
     let is_root = signer == account;
     let role_error = |msg: &str| CoreError::new(ErrorCode::SignerRole, msg.to_owned());
@@ -96,22 +116,35 @@ pub fn validate_parsed(event: &Event, ctx: &dyn ValidationContext) -> Result<(),
             }
             return Ok(());
         }
-        SignerRole::Root if !is_root => {
-            return Err(role_error("este tipo solo lo firma la llave raíz"));
+        SignerRole::Root => {
+            if !is_root {
+                return Err(role_error("este tipo solo lo firma la llave raíz"));
+            }
         }
-        SignerRole::Device if is_root => {
-            return Err(role_error(
-                "este tipo lo firma un dispositivo delegado, no la raíz",
-            ));
+        SignerRole::RootOrRegistry => {
+            if !is_root {
+                if ctx.is_registry_key(signer) {
+                    // Rotación de recuperación firmada por el registro (`docs/05`).
+                    return Ok(());
+                }
+                return Err(role_error(
+                    "este tipo solo lo firma la llave raíz o el registro",
+                ));
+            }
         }
-        SignerRole::RootOrRegistry if !is_root && ctx.is_registry_key(signer) => {
-            // Rotación de recuperación firmada por el registro (`docs/05`): sin atestación.
-            return Ok(());
+        SignerRole::Device => {
+            if is_root {
+                return Err(role_error(
+                    "este tipo lo firma un dispositivo delegado, no la raíz",
+                ));
+            }
+            check_delegation(ctx, account, signer, event.kind(), created_at)?;
         }
-        _ => {}
-    }
-    if !is_root {
-        check_delegation(ctx, account, signer, event.kind(), created_at)?;
+        SignerRole::RootOrDevice => {
+            if !is_root {
+                check_delegation(ctx, account, signer, event.kind(), created_at)?;
+            }
+        }
     }
 
     // Paso 6: atestación vigente y nivel suficiente.
@@ -143,7 +176,7 @@ fn check_delegation(
     kind: &str,
     created_at: i64,
 ) -> Result<(), CoreError> {
-    let Some(grant) = ctx.device_grant(account, signer) else {
+    let Some(grant) = ctx.device_grant(account, signer, created_at) else {
         return Err(CoreError::new(
             ErrorCode::DelegationMissing,
             "signer no tiene device.grant de account",

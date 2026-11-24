@@ -22,7 +22,7 @@ const HEX32: &str = "^[0-9a-f]{64}$";
 const HEX64: &str = "^[0-9a-f]{128}$";
 const KIND: &str = "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$";
 const CODE: &str = "^[a-z][a-z0-9_]{0,31}$";
-const CID: &str = "^b3_[a-z2-7]{52}$";
+const CID: &str = "^b3_[a-z2-7]{51}[aq]$";
 const ZONE: &str = "^z_[0-9a-hjkmnp-tv-z]{12}$";
 const LANG: &str = "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$";
 
@@ -73,7 +73,7 @@ fn field_schema(ty: FieldType) -> Json {
             ("type", "string".into()),
             ("minLength", Json::Int(1)),
             ("maxLength", int(max)),
-            ("pattern", "^[\\u0000-\\u007f]*$".into()),
+            ("pattern", "^[\\u0020-\\u007e]*$".into()),
         ]),
         FieldType::Zone => obj(vec![
             ("type", "object".into()),
@@ -106,6 +106,20 @@ fn field_schema(ty: FieldType) -> Json {
                     ("type", "string".into()),
                     ("pattern", KIND.into()),
                     ("maxLength", int(MAX_KIND_BYTES)),
+                    // Solo tipos que un dispositivo puede firmar (ADR-021).
+                    (
+                        "not",
+                        obj(vec![(
+                            "enum",
+                            Json::Array(
+                                crate::kinds::KINDS
+                                    .iter()
+                                    .filter(|k| !k.signer.delegable())
+                                    .map(|k| k.kind.into())
+                                    .collect(),
+                            ),
+                        )]),
+                    ),
                 ]),
             ),
             ("minItems", Json::Int(1)),
@@ -158,6 +172,7 @@ fn envelope_schema() -> Json {
                             ("minLength", Json::Int(1)),
                             ("x-max-chars", int(MAX_TOPIC_CHARS)),
                             ("x-lowercase", Json::Bool(true)),
+                            ("x-nfc", Json::Bool(true)),
                         ]),
                     ]),
                 ),
