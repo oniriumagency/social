@@ -8,6 +8,7 @@ Especificación normativa de la versión 1 del protocolo. Las palabras DEBE, NO 
 - Tiempo en segundos Unix (entero).
 - Texto en UTF-8, normalizado a NFC por el cliente antes de firmar.
 - Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento. Un literal con forma de entero fuera de ese rango, aunque no quepa en 64 bits, es `E_JSON_INT_RANGE`; `-0` y todo literal con `.`, `e` o `E` es `E_JSON_FLOAT`.
+- Forma en el cable: un evento viaja y se acepta solo en su forma canónica JCS exacta (sin espacios, claves en orden, sin escapes innecesarios ni nada detrás); si no, `E_JSON_NOT_CANONICAL` (D-17, ADR-020).
 - JSON: sin claves repetidas en un objeto y como mucho 127 niveles de listas y objetos anidados, contando el objeto exterior (`MAX_DEPTH`); un nivel más es `E_JSON_INVALID`.
 - Hash: SHA-256 para identificadores de evento. BLAKE3 para contenido binario.
 - Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas con codificación no canónica, fuera de la curva, de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
@@ -57,7 +58,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 **Validación.** Un receptor DEBE rechazar el evento si falla cualquiera de estos puntos, en este orden:
 
 1. Tamaño total mayor a 16 KiB.
-2. JSON fuera del subconjunto de §1 (claves repetidas, decimales, `null`, enteros fuera de rango, más de 127 niveles), campos desconocidos en la envoltura, esquema de la envoltura o de `kind` inválido, o `account` o `signer` que no son llaves públicas válidas.
+2. JSON fuera del subconjunto de §1 (claves repetidas, decimales, `null`, enteros fuera de rango, más de 127 niveles), bytes que no son la forma canónica del evento, campos desconocidos en la envoltura, esquema de la envoltura o de `kind` inválido, o `account` o `signer` que no son llaves públicas válidas.
 3. `id` distinto del calculado.
 4. `sig` inválida para `signer`.
 5. `signer` distinto de `account` y sin `device.grant` vigente y no revocado que cubra `kind` en `created_at`.
@@ -121,7 +122,7 @@ Sin sesiones ni cookies. Toda escritura es un evento firmado. Las lecturas de co
 | `GET /v1/info` | Versión de protocolo, llaves del registro, límites, versión de catálogo. |
 
 - **Paginación:** por cursor opaco que codifica `(created_at, id)`. Nunca por desplazamiento.
-- **Errores:** `{ "error": { "code": "E_SIG_INVALID", "message": "..." } }` con códigos estables enumerados en `social-core` (`ErrorCode`). Envoltura (pasos 1 a 4): `E_EVENT_TOO_LARGE`, `E_JSON_INVALID`, `E_JSON_DUPLICATE_KEY`, `E_JSON_FLOAT`, `E_JSON_NULL`, `E_JSON_INT_RANGE`, `E_SCHEMA`, `E_UNKNOWN_FIELD`, `E_VERSION_UNSUPPORTED`, `E_PUBKEY_INVALID`, `E_ID_MISMATCH`, `E_SIG_INVALID`.
+- **Errores:** `{ "error": { "code": "E_SIG_INVALID", "message": "..." } }` con códigos estables enumerados en `social-core` (`ErrorCode`). Envoltura (pasos 1 a 4): `E_EVENT_TOO_LARGE`, `E_JSON_INVALID`, `E_JSON_DUPLICATE_KEY`, `E_JSON_FLOAT`, `E_JSON_NULL`, `E_JSON_INT_RANGE`, `E_JSON_NOT_CANONICAL`, `E_SCHEMA`, `E_UNKNOWN_FIELD`, `E_VERSION_UNSUPPORTED`, `E_PUBKEY_INVALID`, `E_ID_MISMATCH`, `E_SIG_INVALID`.
 - **Respuestas de feed:** eventos completos con firma, para que el cliente verifique.
 - **No existe ningún endpoint que reciba coordenadas.**
 - Una cuenta en pausa recibe `E_STEP_UP_REQUIRED` al publicar, con el identificador del reto pendiente. Puede seguir leyendo.

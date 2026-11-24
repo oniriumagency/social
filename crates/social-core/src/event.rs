@@ -175,8 +175,14 @@ impl Event {
                 format!("{} bytes; el máximo es {MAX_EVENT_BYTES}", bytes.len()),
             ));
         }
-        // Paso 2: JSON estricto y esquema de la envoltura.
+        // Paso 2: JSON estricto, forma canónica exacta (D-17) y esquema de la envoltura.
         let value = Json::parse(bytes)?;
+        if value.to_canonical_vec() != bytes {
+            return Err(CoreError::new(
+                ErrorCode::JsonNotCanonical,
+                "los bytes no son la forma canónica JCS del evento",
+            ));
+        }
         let event = Self::from_json(&value)?;
         // Paso 3: identificador.
         if event.unsigned.id() != event.id {

@@ -18,6 +18,8 @@ pub enum ErrorCode {
     JsonNull,
     /// Un entero fuera de ±(2⁵³ − 1) (paso 2).
     JsonIntRange,
+    /// Los bytes no son exactamente la forma canónica JCS del evento (paso 2, D-17).
+    JsonNotCanonical,
     /// La envoltura o el contenido no cumplen el esquema (paso 2).
     Schema,
     /// La envoltura tiene un campo desconocido (paso 2).
@@ -41,6 +43,7 @@ impl ErrorCode {
         Self::JsonFloat,
         Self::JsonNull,
         Self::JsonIntRange,
+        Self::JsonNotCanonical,
         Self::Schema,
         Self::UnknownField,
         Self::VersionUnsupported,
@@ -59,6 +62,7 @@ impl ErrorCode {
             Self::JsonFloat => "E_JSON_FLOAT",
             Self::JsonNull => "E_JSON_NULL",
             Self::JsonIntRange => "E_JSON_INT_RANGE",
+            Self::JsonNotCanonical => "E_JSON_NOT_CANONICAL",
             Self::Schema => "E_SCHEMA",
             Self::UnknownField => "E_UNKNOWN_FIELD",
             Self::VersionUnsupported => "E_VERSION_UNSUPPORTED",
