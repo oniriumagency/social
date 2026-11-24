@@ -53,9 +53,14 @@ impl ValidationContext for MemoryContext {
     }
 }
 
-const T0: i64 = 1_790_000_000;
-const ZONE: &str = "z_3k9dq7m2x4pa";
-const CID: &str = "b3_afurvqfaykmqtj5r2xhj5kxprhmpfwoxwoxqkhqpbdddpqhsvqfq";
+/// Instante de referencia del contexto de `validation.json`.
+pub const T0: i64 = 1_790_000_000;
+/// Zona de prueba válida.
+pub const ZONE: &str = "z_3k9dq7m2x4pa";
+/// Identificador de contenido de prueba válido.
+pub const CID: &str = "b3_afurvqfaykmqtj5r2xhj5kxprhmpfwoxwoxqkhqpbdddpqhsvqfq";
+/// Número de llaves de prueba que usa el contexto (de 1 a este valor).
+pub const TEST_KEYS: u8 = 13;
 
 fn key(n: u8) -> SigningKey {
     let mut seed = [0u8; 32];
@@ -70,6 +75,20 @@ fn pk(n: u8) -> [u8; 32] {
 
 fn pkh(n: u8) -> String {
     hex::encode(pk(n))
+}
+
+/// Llave pública de prueba número `n` del contexto de `validation.json`.
+#[must_use]
+pub fn test_public_key(n: u8) -> [u8; 32] {
+    pk(n)
+}
+
+/// Firma con la llave de prueba número `n` (para el fuzzing de la validación).
+///
+/// # Errors
+/// El error de [`UnsignedEvent::sign`].
+pub fn sign_with_test_key(unsigned: UnsignedEvent, n: u8) -> Result<crate::Event, CoreError> {
+    unsigned.sign(&key(n))
 }
 
 // Papeles de las llaves de prueba.
