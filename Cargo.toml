@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "tools/xtask"]
+# fuzz/ es un workspace aparte: cargo-fuzz exige nightly.
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.0.0"

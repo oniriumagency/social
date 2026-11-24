@@ -25,10 +25,12 @@
     "db:migrate": "node scripts/pending.mjs db:migrate F1-T02",
     "spec:gen": "cargo run --locked -p xtask -- spec",
     "spec:check": "cargo run --locked -p xtask -- spec --check",
+    "fuzz": "node scripts/fuzz.mjs",
     "check:rules": "node scripts/check-agent-rules.mjs",
     "check:rust": "node scripts/run.mjs check:rust",
     "check:ts": "node scripts/run.mjs check:ts",
     "check:supply": "node scripts/run.mjs check:supply",
+    "check:fuzz": "node scripts/run.mjs check:fuzz",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check": "node scripts/run.mjs check"
   },

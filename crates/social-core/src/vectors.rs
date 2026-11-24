@@ -14,7 +14,10 @@ use social_crypto::{SecretKey32, SigningKey};
 
 use crate::{CoreError, ErrorCode, Event, Json, Tag, UnsignedEvent};
 
-pub use crate::vectors_validation::{MemoryContext, generate_validation_suite};
+pub use crate::vectors_validation::{
+    CID, MemoryContext, T0, TEST_KEYS, ZONE, generate_validation_suite, load_context,
+    sign_with_test_key, test_public_key,
+};
 
 /// Resultado de ejecutar un archivo de vectores.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

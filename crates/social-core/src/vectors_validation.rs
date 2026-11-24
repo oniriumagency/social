@@ -53,9 +53,14 @@ impl ValidationContext for MemoryContext {
     }
 }
 
-const T0: i64 = 1_790_000_000;
-const ZONE: &str = "z_3k9dq7m2x4pa";
-const CID: &str = "b3_afurvqfaykmqtj5r2xhj5kxprhmpfwoxwoxqkhqpbdddpqhsvqfq";
+/// Instante de referencia del contexto de `validation.json`.
+pub const T0: i64 = 1_790_000_000;
+/// Zona de prueba válida.
+pub const ZONE: &str = "z_3k9dq7m2x4pa";
+/// Identificador de contenido de prueba válido.
+pub const CID: &str = "b3_afurvqfaykmqtj5r2xhj5kxprhmpfwoxwoxqkhqpbdddpqhsvqfq";
+/// Número de llaves de prueba que usa el contexto (de 1 a este valor).
+pub const TEST_KEYS: u8 = 13;
 
 fn key(n: u8) -> SigningKey {
     let mut seed = [0u8; 32];
@@ -70,6 +75,20 @@ fn pk(n: u8) -> [u8; 32] {
 
 fn pkh(n: u8) -> String {
     hex::encode(pk(n))
+}
+
+/// Llave pública de prueba número `n` del contexto de `validation.json`.
+#[must_use]
+pub fn test_public_key(n: u8) -> [u8; 32] {
+    pk(n)
+}
+
+/// Firma con la llave de prueba número `n` (para el fuzzing de la validación).
+///
+/// # Errors
+/// El error de [`UnsignedEvent::sign`].
+pub fn sign_with_test_key(unsigned: UnsignedEvent, n: u8) -> Result<crate::Event, CoreError> {
+    unsigned.sign(&key(n))
 }
 
 // Papeles de las llaves de prueba.
@@ -218,8 +237,13 @@ fn hex32(s: &str) -> Option<[u8; 32]> {
     Some(out)
 }
 
-/// Construye el contexto en memoria descrito en un archivo de vectores.
-fn load_context(ctx: &Json) -> Option<MemoryContext> {
+/// Construye el contexto en memoria de un archivo de vectores de validación ya analizado.
+#[must_use]
+pub fn load_context(suite: &Json) -> Option<MemoryContext> {
+    load_context_object(suite.as_object()?.get("context")?)
+}
+
+fn load_context_object(ctx: &Json) -> Option<MemoryContext> {
     let o = ctx.as_object()?;
     let keys = |name: &str| -> Option<Vec<[u8; 32]>> {
         o.get(name)?
@@ -1124,7 +1148,7 @@ pub fn generate_validation_suite() -> Result<String, CoreError> {
 
 /// Ejecuta una suite de validación ya analizada.
 pub(crate) fn run(suite: &BTreeMap<String, Json>, report: &mut SuiteReport) {
-    let Some(ctx) = suite.get("context").and_then(load_context) else {
+    let Some(ctx) = suite.get("context").and_then(load_context_object) else {
         report.failures.push("context ausente o mal formado".into());
         return;
     };

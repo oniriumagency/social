@@ -31,7 +31,7 @@
 | F0-T07 | `social-core`: tipos y validación | en revisión | Claude Code | `tarea/F0-T07-tipos-y-validacion` | 2026-11-24 |
 | F0-T08 | Núcleo en WASM | en revisión | Claude Code | `tarea/F0-T08-nucleo-wasm` | 2026-11-24 |
 | F0-T09 | Esquemas y deriva | en revisión | Claude Code | `tarea/F0-T09-esquemas-y-deriva` | 2026-11-24 |
-| F0-T10 | Fuzzing | pendiente | | | |
+| F0-T10 | Fuzzing | en revisión | Claude Code | `tarea/F0-T10-fuzzing` | 2026-11-24 |
 | F0-T11 | Comprobación de reglas de agentes | en revisión | Claude Code | `tarea/F0-T11-reglas-en-ci` | 2026-11-24 |
 | F0-S1 | Spike: prueba de humanidad (Colombia) | pendiente | | | |
 | F0-S2 | Spike: red entre nodos | pendiente | | | |
@@ -57,6 +57,12 @@ Notas de tareas que quedaron a medias. Formato:
 - Probado:
 - Preocupa:
 ```
+
+### F0 (código) — 2026-11-24 — Claude Code
+- Hecho: F0-T01, T02, T04 a T11 implementadas en ramas apiladas (`tarea/F0-T01-...` → `tarea/F0-T10-fuzzing`, cada una sale de la anterior). `pnpm check` en verde en Linux en cada una.
+- Falta: subir las ramas y abrir un PR por tarea; comprobar CI en Windows; activar la protección de `main` (H); PR de prueba con fallo intencional (criterio de F0-T02). F0-T03 sigue bloqueada por D-04.
+- Probado: bootstrap y check desde un clon limpio (T01); `pnpm dev:infra` con Docker real (T04); 76 vectores en nativo, Node y Chromium (T08); 10 minutos de fuzzing por objetivo sin fallos (T10).
+- Preocupa: CI en Windows no se ha podido ejecutar todavía. MinIO ya no publica imágenes comunitarias: se usa SeaweedFS en local (`docs/03`, `docs/11`). Los spikes S1, S2, S4 y S5 necesitan dispositivos y redes reales.
 
 ### F0-T06 a F0-T10 — 2026-11-24 — Claude Code
 - Hecho: revisión independiente de los PR 6 a 10 con todos los hallazgos requeridos corregidos. D-17 decidida: forma canónica obligatoria en el cable (`E_JSON_NOT_CANONICAL`).

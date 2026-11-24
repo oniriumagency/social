@@ -109,6 +109,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm db:migrate` | Aplica migraciones. |
 | `pnpm spec:gen` | Regenera `spec/schemas/` (esquemas JSON de la envoltura y de cada tipo, desde la tabla de `social-core`). La OpenAPI se añade con la pasarela en F1. `pnpm spec:check` comprueba que no hay diferencias y forma parte de `pnpm check`. |
 | `pnpm vectors:gen` | Regenera `spec/vectors/` desde `social-core`. Cambiar un vector existente es un cambio de protocolo y exige ADR. |
+| `pnpm fuzz` | Fuzzing con cargo-fuzz (nightly fijada en `fuzz/rust-toolchain.toml`, solo en `fuzz/`): `json_parse`, `event_parse`, `event_validate` (bytes crudos) y `event_build` (construye y firma eventos con las llaves de prueba para llegar a papeles, delegaciones y atestación), sembrados con todas las listas de los vectores dorados. Por defecto 60 s por objetivo; `pnpm fuzz <objetivo> <segundos>`. CI lo ejecuta cada noche y conserva el corpus. `pnpm check:fuzz` comprueba que los objetivos compilan con su `Cargo.lock`. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
 | `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
 | `pnpm check:supply` | `cargo-deny` (licencias, orígenes, crates prohibidos, avisos de RustSec) y `pnpm audit`. |
@@ -143,7 +144,8 @@ GitHub Actions. Matriz en `ubuntu-latest` y `windows-latest`; `macos-latest` par
 | `secrets` | Escáner de secretos sobre el diff y el historial |
 | `rules` | `pnpm check:rules`; límites de arquitectura |
 | `privacy` | Prueba de registros limpios y prueba de tráfico sin coordenadas |
-| `fuzz` (programado) | Fuzzing nocturno de análisis de eventos y mensajes de red |
+| `fuzz-build` | `pnpm check:fuzz`: los objetivos de `fuzz/` compilan y `fuzz/Cargo.lock` está al día |
+| `fuzz` (programado) | Fuzzing nocturno de análisis y validación de eventos (y de mensajes de red cuando existan). Las dependencias de `fuzz/` (`libfuzzer-sys`, con licencia NCSA, y sus dependencias de compilación) quedan fuera de `cargo deny`: son solo de pruebas, no entran en ningún binario distribuido y su grafo no comparte el del workspace |
 | `desktop-build` | Compilación de Tauri en los tres sistemas |
 
 Reglas:
