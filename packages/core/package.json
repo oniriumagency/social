@@ -1,0 +1,23 @@
+{
+  "name": "@social/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Envoltorio TypeScript del núcleo de protocolo en WASM. Toda la lógica de protocolo y criptografía vive en Rust (I-8).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-wasm.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:vectors": "vitest run test/vectors.test.ts && node test/browser-vectors.mjs"
+  },
+  "devDependencies": {
+    "@social/config": "workspace:*",
+    "@types/node": "22.20.5",
+    "playwright": "1.63.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  }
+}

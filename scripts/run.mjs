@@ -34,8 +34,11 @@ const STEPS = {
   "typecheck:ts": [["pnpm", "exec", "turbo", "run", "typecheck"]],
   "test:rust": [["cargo", "test", "--workspace", "--locked"]],
   "test:ts": [["pnpm", "exec", "turbo", "run", "test"]],
-  // Vectores dorados de spec/vectors/ (docs/14 §3). En F0-T08 se añaden WASM en Node y navegador.
-  "test:vectors": [["cargo", "test", "--locked", "-p", "social-core", "--test", "golden_vectors"]],
+  // Los mismos vectores en nativo, en WASM sobre Node y en WASM dentro de Chromium.
+  "test:vectors": [
+    ["cargo", "test", "--locked", "-p", "social-core", "--test", "golden_vectors"],
+    ["pnpm", "exec", "turbo", "run", "test:vectors", "--filter", "@social/core"],
+  ],
   // Cadena de suministro (docs/11 §5): licencias, orígenes, crates prohibidos y avisos de seguridad.
   "check:supply": [
     ["cargo", "deny", "--locked", "check"],
