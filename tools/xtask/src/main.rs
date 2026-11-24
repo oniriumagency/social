@@ -6,6 +6,7 @@ use std::process::ExitCode;
 
 use social_core::CoreError;
 use social_core::vectors::{generate_envelope_suite, generate_validation_suite};
+use social_core::vectors_ids::generate_ids_suite;
 
 const USAGE: &str = "uso: cargo run -p xtask -- <subcomando>\n\nsubcomandos:\n  spec           regenera spec/schemas/ desde social-core\n  spec --check   falla si spec/schemas/ no coincide con lo generado\n  vectors        regenera spec/vectors/ (cambio de protocolo: exige ADR)\n  help           muestra esta ayuda\n";
 
@@ -18,9 +19,10 @@ fn repo_root() -> PathBuf {
 }
 
 fn vectors() -> ExitCode {
-    let suites: [(&str, Generator); 2] = [
+    let suites: [(&str, Generator); 3] = [
         ("envelope.json", generate_envelope_suite),
         ("validation.json", generate_validation_suite),
+        ("ids.json", generate_ids_suite),
     ];
     for (file, generate) in suites {
         let suite = match generate() {

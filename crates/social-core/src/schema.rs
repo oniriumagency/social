@@ -22,7 +22,7 @@ const HEX32: &str = "^[0-9a-f]{64}$";
 const HEX64: &str = "^[0-9a-f]{128}$";
 const KIND: &str = "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$";
 const CODE: &str = "^[a-z][a-z0-9_]{0,31}$";
-const CID: &str = "^b3_[a-z2-7]{52}$";
+const CID: &str = "^b3_[a-z2-7]{51}[aq]$";
 const ZONE: &str = "^z_[0-9a-hjkmnp-tv-z]{12}$";
 const LANG: &str = "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$";
 

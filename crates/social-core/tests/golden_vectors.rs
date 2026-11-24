@@ -10,7 +10,7 @@ const VALIDATION: &str = include_str!("../../../spec/vectors/validation.json");
 fn envelope_vectors_pass() {
     let report = run_suite(ENVELOPE);
     assert!(report.ok(), "fallos: {:#?}", report.failures);
-    assert_eq!(report.passed, 25);
+    assert_eq!(report.passed, 29);
 }
 
 /// Si esto falla, alguien cambió el núcleo de forma que los vectores ya no coinciden.
@@ -29,7 +29,7 @@ fn envelope_vectors_have_not_drifted() {
 fn validation_vectors_pass() {
     let report = run_suite(VALIDATION);
     assert!(report.ok(), "fallos: {:#?}", report.failures);
-    assert_eq!(report.passed, 51);
+    assert_eq!(report.passed, 60);
 }
 
 #[test]
@@ -53,4 +53,19 @@ fn every_rejection_rule_has_a_vector() {
             "falta un vector para {code}"
         );
     }
+}
+
+const IDS: &str = include_str!("../../../spec/vectors/ids.json");
+
+/// Corpus generado: el núcleo nativo recalcula cada `id` (WASM lo hace en `@social/core`).
+#[test]
+fn id_corpus_passes_and_has_not_drifted() {
+    let report = run_suite(IDS);
+    assert!(report.ok(), "fallos: {:#?}", report.failures);
+    assert_eq!(report.passed, social_core::vectors_ids::CORPUS_SIZE);
+    let generated = social_core::vectors_ids::generate_ids_suite();
+    assert!(
+        generated.as_deref() == Ok(IDS.replace("\r\n", "\n").as_str()),
+        "spec/vectors/ids.json no coincide con el generador"
+    );
 }

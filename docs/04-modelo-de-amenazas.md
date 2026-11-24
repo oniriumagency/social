@@ -86,6 +86,7 @@ El rendimiento por cuenta falsa se limita con tres frenos: los puntos exigen niv
 | :-- | :-- | :-- |
 | Núcleo | Dos implementaciones calculan identificadores distintos | Un solo núcleo en Rust; vectores dorados; pruebas de propiedades y fuzzing. |
 | Núcleo | Maleabilidad de firmas | Verificación estricta de Ed25519; rechazo de codificaciones no canónicas. |
+| Núcleo | Llave de dispositivo comprometida | Papeles de firma estrictos: un dispositivo nunca firma tipos de raíz, registro u operador; delegaciones con caducidad y revocación. Riesgo abierto: eventos fechados antes de la revocación fuera de la ingesta (D-18). |
 | Pasarela | Inyección de eventos falsos o repetidos | Validación completa antes de persistir; identificador por contenido; inserción idempotente. |
 | Pasarela | Granjas en niveles bajos | Motor de riesgo sobre eventos públicos y retos de presencia en momentos impredecibles; el puntaje nunca sube el nivel. |
 | Pasarela | Inundación | Límites por cuenta y por IP en memoria; tamaño máximo; coste por operación. |
