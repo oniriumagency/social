@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
-    "dev:infra": "node scripts/pending.mjs dev:infra F0-T04",
+    "dev:infra": "node scripts/dev-infra.mjs",
     "dev": "node scripts/pending.mjs dev F1-T01",
     "dev:desktop": "node scripts/pending.mjs dev:desktop F1-T23",
     "fmt": "node scripts/run.mjs fmt",

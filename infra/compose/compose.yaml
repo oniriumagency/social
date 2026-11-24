@@ -1,0 +1,44 @@
+# Infraestructura local de desarrollo (F0-T04, docs/11 §7). Solo datos sintéticos.
+# Se levanta con `pnpm dev:infra` y se para con `pnpm dev:infra down`.
+# Los puertos se publican solo en 127.0.0.1: nada queda expuesto a la red local.
+# Las imágenes se fijan por versión y por digest.
+name: social-dev
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-social}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env (copia .env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-social}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Almacenamiento compatible con S3 para la media (docs/03). MinIO dejó de publicar
+  # imágenes de su edición comunitaria; se usa SeaweedFS (Apache-2.0) en modo `mini`.
+  s3:
+    image: chrislusf/seaweedfs:4.55@sha256:7ca46aeae2f223b37e5d91593c17ab37738eec6df6ab69b48a0487f7643342b9
+    command: ["mini", "-dir=/data", "-bucket=${S3_BUCKET:-social-media}"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Define S3_ACCESS_KEY_ID en .env (copia .env.example)}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Define S3_SECRET_ACCESS_KEY en .env (copia .env.example)}
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+
+volumes:
+  postgres-data:
+  s3-data:
