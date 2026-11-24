@@ -39,6 +39,8 @@ allow-wildcard-paths = true
 # `wrappers` lista quién puede depender directamente de cada una; cualquier otro crate del
 # grafo que la importe hace fallar `pnpm check:supply` y el trabajo supply-chain de CI.
 # Para otra biblioteca criptográfica, añádela aquí en el mismo PR (aprobación humana, I-15).
+# proptest, rand y tempfile son solo de pruebas: generan datos de prueba y archivos
+# temporales, nunca material criptográfico del protocolo.
 deny = [
   { crate = "ed25519-dalek", wrappers = ["social-crypto"] },
   { crate = "curve25519-dalek", wrappers = ["ed25519-dalek"] },
@@ -49,12 +51,12 @@ deny = [
   { crate = "hkdf", wrappers = ["social-crypto"] },
   { crate = "hmac", wrappers = ["hkdf"] },
   { crate = "chacha20poly1305", wrappers = ["social-crypto"] },
-  { crate = "chacha20", wrappers = ["chacha20poly1305"] },
+  { crate = "chacha20", wrappers = ["chacha20poly1305", "proptest"] },
   { crate = "poly1305", wrappers = ["chacha20poly1305"] },
   { crate = "aes-gcm", wrappers = ["social-crypto"] },
   { crate = "rsa", wrappers = ["social-crypto"] },
   { crate = "blind-rsa-signatures", wrappers = ["social-crypto"] },
-  { crate = "getrandom", wrappers = ["social-crypto"] },
+  { crate = "getrandom", wrappers = ["social-crypto", "rand", "tempfile"] },
   { crate = "aes", wrappers = ["social-crypto"] },
   { crate = "aes-gcm-siv", wrappers = ["social-crypto"] },
   { crate = "argon2", wrappers = ["social-crypto"] },

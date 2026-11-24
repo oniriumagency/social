@@ -1,0 +1,19 @@
+[package]
+name = "social-core"
+description = "Núcleo de protocolo de Social: eventos, canonicalización, firma y validación"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hex = "0.4.3"
+serde = "1.0.229"
+serde_json = "1.0.154"
+social-crypto = { path = "../social-crypto" }
+
+[dev-dependencies]
+proptest = "1.12.0"

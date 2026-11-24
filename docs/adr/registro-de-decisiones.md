@@ -22,7 +22,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Invariantes y amenazas.** Qué invariante o punto de `04` toca, si toca alguno.
 ```
 
-**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto.
+**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto. ADR-020 es una propuesta de F0-T06.
 
 | ADR | Decisión |
 | :-- | :-- |
@@ -45,6 +45,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 | 017 | Registro adaptativo por dispositivo y país del documento |
 | 018 | Puntaje de confianza dinámico, vigilancia por riesgo y verificación adicional |
 | 019 | El piloto es Colombia |
+| 020 | Precisiones de la envoltura v1 (propuesta) |
 
 ---
 
@@ -202,3 +203,23 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Descartado.** Esperar a elegir el país con los datos de S1: retrasa los spikes S1 y S3, que necesitan un país concreto. Dar puntos al nivel 2 para compensar la baja cobertura del pasaporte: sigue siendo la decisión D-15, que se revisa con los datos de S1 y no se abre para salir del paso.
 - **Consecuencias.** La mayoría de los primeros usuarios será de nivel 1 o 2, porque el documento que todo adulto tiene es la cédula. El nivel 3, y con él la billetera, los puntos, los avales y el nodo remunerado, depende de cuánta gente tiene pasaporte con chip: S1 debe medirlo. El método `aval` necesita humanos de nivel 3, así que arranca despacio. El precedente de la SIC refuerza el pilar de privacidad y obliga a que el abogado revise el vínculo entre nivel 3 y puntos antes de G2 y G4.
 - **Invariantes y amenazas.** No relaja ninguna invariante. I-14 incorpora la regla de no premiar la verificación. `04` §7 incorpora el supuesto regulatorio.
+
+## ADR-020. Precisiones de la envoltura v1
+
+- **Fecha y estado.** 2026-11-24. Propuesta, pendiente de aceptación del responsable humano. Amplía ADR-007. Tareas: F0-T05 y F0-T06.
+- **Contexto.** ADR-007 fija el formato (JCS, SHA-256, Ed25519 estricta), pero al implementar `social-core` aparecieron reglas que `docs/06` no decía y que deciden si un evento se acepta o se rechaza. Una regla de validación que no está escrita es una fuente de divergencia entre implementaciones (revisión de los PR de F0-T05 y F0-T06).
+- **Decisión.** La envoltura v1 aplica estas reglas, todas en la validación universal (`06` §3) y todas con vectores en `spec/vectors/envelope.json`:
+  1. **`kind`:** dos o más segmentos `[a-z][a-z0-9_]*` separados por puntos, 64 bytes como máximo.
+  2. **Etiquetas:** solo `t` y `p`, cada una una lista de exactamente dos cadenas, 16 como máximo. `t` tiene de 1 a 64 caracteres, en minúsculas y sin espacios ni caracteres de control. `p` es una llave pública en hexadecimal.
+  3. **`created_at`:** entero no negativo dentro de ±(2⁵³ − 1).
+  4. **Hexadecimal:** `id`, `account`, `signer` y `sig` en minúsculas y con la longitud exacta.
+  5. **JSON estricto:** sin `null`, sin decimales ni exponentes, sin claves repetidas y como mucho 127 niveles de listas y objetos anidados, contando el objeto exterior. La profundidad la fija `social-core` (`MAX_DEPTH`), no el analizador.
+  6. **Códigos de los números:** un literal con forma de entero fuera de ±(2⁵³ − 1) es `E_JSON_INT_RANGE`, también si no cabe en 64 bits. `-0` es `E_JSON_FLOAT`, porque no tiene forma canónica como entero. Un literal con `.`, `e` o `E` es `E_JSON_FLOAT`.
+  7. **Llaves públicas:** `account`, `signer` y las llaves de firma se rechazan si su codificación no es canónica, si no son un punto de la curva, si son de orden pequeño o si tienen componente de torsión (orden mixto). Es `E_PUBKEY_INVALID`.
+  8. **Firma estricta:** se rechazan `s` no reducido y `R` de orden pequeño. Es `E_SIG_INVALID`.
+  9. **Códigos estables:** `E_EVENT_TOO_LARGE`, `E_JSON_INVALID`, `E_JSON_DUPLICATE_KEY`, `E_JSON_FLOAT`, `E_JSON_NULL`, `E_JSON_INT_RANGE`, `E_JSON_NOT_CANONICAL`, `E_SCHEMA`, `E_UNKNOWN_FIELD`, `E_VERSION_UNSUPPORTED`, `E_PUBKEY_INVALID`, `E_ID_MISMATCH`, `E_SIG_INVALID`. No se renombran ni se reutilizan.
+  10. **Firmar es validar:** quien firma aplica las mismas reglas que quien recibe. `social-core` verifica su propio resultado con la validación universal antes de devolverlo.
+  11. **Forma en el cable (D-17, decidida por el responsable el 2026-11-24):** un evento solo es válido si sus bytes son exactamente su forma canónica JCS, sin espacios, con las claves en orden, sin escapes innecesarios y sin nada detrás. Si no, `E_JSON_NOT_CANONICAL`, en el paso 2, después del análisis estricto y antes del esquema de la envoltura. Así el límite de 16 KiB es inequívoco y nadie puede cambiar la forma de un evento firmado; quien guarde o reenvíe eventos (por ejemplo, desde `jsonb`) debe emitir esa forma. Las aplicaciones de terceros que usen la red se ajustan a esta regla.
+- **Descartado.** Dejar la profundidad al analizador: cambia con la versión de la biblioteca sin que nadie lo note. Tratar como decimal un entero que no cabe en 64 bits: el código dependería de cómo lo representa el analizador, no del texto. Aceptar llaves de orden mixto: con ellas una firma puede verificar o no según la implementación.
+- **Consecuencias.** Las reglas quedan escritas y probadas; otra implementación puede reproducirlas con los vectores. Un evento con más de 127 niveles es inválido aunque otro analizador pudiera leerlo.
+- **Invariantes y amenazas.** Refuerza I-9 (validación completa). No relaja ninguna invariante.
