@@ -22,7 +22,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 - **Invariantes y amenazas.** Qué invariante o punto de `04` toca, si toca alguno.
 ```
 
-**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto. ADR-020 y ADR-021 son propuestas de F0-T06 y F0-T07.
+**Estado.** ADR-001 a ADR-015 salen de la auditoría del 2026-11-23: aceptados, pendientes de confirmación en la compuerta G0. ADR-016 a ADR-019 son decisiones del responsable del proyecto. ADR-020 y ADR-021 salen de F0-T06 y F0-T07 y los aceptó el responsable el 2026-11-24.
 
 | ADR | Decisión |
 | :-- | :-- |
@@ -45,8 +45,8 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 | 017 | Registro adaptativo por dispositivo y país del documento |
 | 018 | Puntaje de confianza dinámico, vigilancia por riesgo y verificación adicional |
 | 019 | El piloto es Colombia |
-| 020 | Precisiones de la envoltura v1 (propuesta) |
-| 021 | Reglas de validación por tipo v1 (propuesta) |
+| 020 | Precisiones de la envoltura v1 |
+| 021 | Reglas de validación por tipo v1 |
 
 ---
 
@@ -208,7 +208,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 
 ## ADR-020. Precisiones de la envoltura v1
 
-- **Fecha y estado.** 2026-11-24. Propuesta, pendiente de aceptación del responsable humano. Amplía ADR-007. Tareas: F0-T05 y F0-T06.
+- **Fecha y estado.** 2026-11-24. Aceptada por el responsable el 2026-11-24. Amplía ADR-007. Tareas: F0-T05 y F0-T06.
 - **Contexto.** ADR-007 fija el formato (JCS, SHA-256, Ed25519 estricta), pero al implementar `social-core` aparecieron reglas que `docs/06` no decía y que deciden si un evento se acepta o se rechaza. Una regla de validación que no está escrita es una fuente de divergencia entre implementaciones (revisión de los PR de F0-T05 y F0-T06).
 - **Decisión.** La envoltura v1 aplica estas reglas, todas en la validación universal (`06` §3) y todas con vectores en `spec/vectors/envelope.json`:
   1. **`kind`:** dos o más segmentos `[a-z][a-z0-9_]*` separados por puntos, 64 bytes como máximo.
@@ -228,7 +228,7 @@ Este archivo es el **único** registro de ADR del proyecto. Cada decisión de ar
 
 ## ADR-021. Reglas de validación por tipo v1
 
-- **Fecha y estado.** 2026-11-24. Propuesta, pendiente de aceptación del responsable humano. Amplía ADR-007 y ADR-020. Tarea: F0-T07.
+- **Fecha y estado.** 2026-11-24. Aceptada por el responsable el 2026-11-24. D-15 y D-18 siguen abiertas: si D-15 cambia los privilegios del nivel 1, cambia la regla de imágenes de este ADR. Amplía ADR-007 y ADR-020. Tarea: F0-T07.
 - **Contexto.** `docs/06` §4 da la tabla de tipos, pero al implementar la validación universal hicieron falta reglas que la tabla no fijaba: formatos de cada campo, quién firma cada papel, cómo se consulta una delegación y en qué orden se comprueba todo. Sin ADR, esas reglas serían de facto parte del protocolo sin decisión (revisión del PR de F0-T07). Algunas dependen de los valores por defecto de D-15 (privilegios por nivel).
 - **Decisión.**
   1. **Esquema estricto por tipo:** en un tipo conocido no hay campos fuera de la tabla (`E_UNKNOWN_FIELD`); textos y etiquetas `t` en NFC (`E_TEXT_NOT_NFC`); formatos de zona, `cid`, `lang` y códigos según `06` §4. Un `cid` tiene una sola escritura: los bits sobrantes del último carácter son cero.
