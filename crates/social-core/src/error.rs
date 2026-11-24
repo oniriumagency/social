@@ -32,6 +32,24 @@ pub enum ErrorCode {
     IdMismatch,
     /// Firma inválida o no canónica para `signer` (paso 4).
     SigInvalid,
+    /// Un texto no está en forma de normalización NFC (paso 2).
+    TextNotNfc,
+    /// Se supera un límite del tipo: longitud, número de elementos o plazos (`docs/06` §4).
+    LimitExceeded,
+    /// La llave que firma no tiene el papel que exige el tipo (paso 5).
+    SignerRole,
+    /// `signer` distinto de `account` sin `device.grant` (paso 5).
+    DelegationMissing,
+    /// La delegación estaba revocada en `created_at` (paso 5).
+    DelegationRevoked,
+    /// La delegación no estaba vigente en `created_at` (paso 5).
+    DelegationExpired,
+    /// La delegación no cubre el `kind` del evento (paso 5).
+    DelegationScope,
+    /// La cuenta no tiene atestación vigente en `created_at` (paso 6).
+    AttestationMissing,
+    /// El nivel de la cuenta no basta para ese tipo o ese contenido (paso 6).
+    LevelInsufficient,
 }
 
 impl ErrorCode {
@@ -50,6 +68,15 @@ impl ErrorCode {
         Self::PublicKeyInvalid,
         Self::IdMismatch,
         Self::SigInvalid,
+        Self::TextNotNfc,
+        Self::LimitExceeded,
+        Self::SignerRole,
+        Self::DelegationMissing,
+        Self::DelegationRevoked,
+        Self::DelegationExpired,
+        Self::DelegationScope,
+        Self::AttestationMissing,
+        Self::LevelInsufficient,
     ];
 
     /// Código textual estable, el que viaja en la API: `{"error":{"code":"E_..."}}`.
@@ -69,6 +96,15 @@ impl ErrorCode {
             Self::PublicKeyInvalid => "E_PUBKEY_INVALID",
             Self::IdMismatch => "E_ID_MISMATCH",
             Self::SigInvalid => "E_SIG_INVALID",
+            Self::TextNotNfc => "E_TEXT_NOT_NFC",
+            Self::LimitExceeded => "E_LIMIT_EXCEEDED",
+            Self::SignerRole => "E_SIGNER_ROLE",
+            Self::DelegationMissing => "E_DELEGATION_MISSING",
+            Self::DelegationRevoked => "E_DELEGATION_REVOKED",
+            Self::DelegationExpired => "E_DELEGATION_EXPIRED",
+            Self::DelegationScope => "E_DELEGATION_SCOPE",
+            Self::AttestationMissing => "E_ATTESTATION_MISSING",
+            Self::LevelInsufficient => "E_LEVEL_INSUFFICIENT",
         }
     }
 
