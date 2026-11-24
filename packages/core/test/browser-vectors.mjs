@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const SUITES = { "envelope.json": 29, "validation.json": 60, "ids.json": 128 };
+const SUITES = { "envelope.json": 33, "validation.json": 60, "ids.json": 128 };
 const TYPES = {
   ".js": "text/javascript",
   ".wasm": "application/wasm",
