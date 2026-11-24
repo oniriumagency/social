@@ -9,7 +9,7 @@ const ENVELOPE: &str = include_str!("../../../spec/vectors/envelope.json");
 fn envelope_vectors_pass() {
     let report = run_suite(ENVELOPE);
     assert!(report.ok(), "fallos: {:#?}", report.failures);
-    assert_eq!(report.passed, 25);
+    assert_eq!(report.passed, 29);
 }
 
 /// Si esto falla, alguien cambió el núcleo de forma que los vectores ya no coinciden.

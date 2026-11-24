@@ -20,6 +20,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-14 | Insignia de nivel visible y filtro por nivel | Visible, con filtro | F2-T10 | Pendiente |
 | D-15 | Privilegios por nivel; en particular, si el nivel 2 puede ganar puntos | Solo nivel 3 gana puntos | F2-T10, F4 | Pendiente |
 | D-16 | Política de retos: frecuencia, plazos y efecto en el puntaje | Valores de `05` §6.2 | F2-T24 | Pendiente de calibrar |
+| D-17 | Exigir que los eventos viajen en su forma canónica exacta | Se acepta cualquier serialización válida; el límite de 16 KiB se mide sobre los bytes recibidos | Fusión de F0-T06 | Pendiente |
 
 ---
 
@@ -97,6 +98,10 @@ Qué se retira y con qué proceso. Debe existir antes de admitir invitados reale
 ## D-16. Política de retos
 
 Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; +5, −5 y −15 puntos) son puntos de partida razonables, sin datos reales detrás. Se calibran en la beta: si los retos molestan a usuarios legítimos se espacian, y si no frenan a las granjas se intensifican en el tramo bajo.
+
+## D-17. Forma canónica en el cable
+
+Hoy un receptor acepta un evento con cualquier espaciado u orden de claves, porque el identificador se calcula sobre la forma canónica. Eso hace que el límite de 16 KiB dependa de cómo se serializó. Opciones: rechazar el evento si sus bytes no son exactamente su JCS (recomendada en la revisión de F0-T06: el límite queda inequívoco y nadie puede alterar el formato de un evento firmado), o medir el límite sobre la forma canónica. Cualquiera de las dos es una regla de protocolo: se añade a ADR-020, `06` §3 y los vectores.
 
 ---
 
