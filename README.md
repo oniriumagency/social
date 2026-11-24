@@ -2,7 +2,7 @@
 
 Nombre en clave de una red social de microblogging con conversación local y global, 100% humana con niveles de confianza, privada y de descentralización progresiva.
 
-**Estado:** fase F0 (cimientos). Piloto en Colombia. Todavía no hay código. Este repositorio contiene el diseño auditado, el plan completo y las reglas para construirlo con herramientas de programación agéntica.
+**Estado:** fase F0 (cimientos). Piloto en Bogotá, Colombia. El esqueleto del monorepo está en marcha (ver `docs/estado/PROGRESO.md`). Este repositorio contiene el diseño auditado, el plan completo y las reglas para construirlo con herramientas de programación agéntica.
 
 ## Por dónde empezar
 
@@ -48,8 +48,8 @@ Nombre en clave de una red social de microblogging con conversación local y glo
 ## Primeros pasos
 
 1. Resolver la decisión D-04 (licencias) en `docs/15-decisiones-pendientes.md`.
-2. Inicializar el repositorio git y subirlo.
-3. Pedir al agente: `/tarea F0-T01`.
+2. Instalar los requisitos de `docs/11-repositorio-entorno-y-ci.md` §1 (Git, Rust con rustup, Node.js 22 o superior, pnpm 10, Docker Desktop).
+3. `pnpm bootstrap` y luego `pnpm check`.
 
 ## Seguridad
 

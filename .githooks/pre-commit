@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+// Gancho previo al commit: formato y reglas de agentes. Rápido a propósito;
+// la comprobación completa es `pnpm check`. No se salta con --no-verify (CLAUDE.md §8).
+
+import { spawnSync } from "node:child_process";
+
+const isWindows = process.platform === "win32";
+for (const [program, ...args] of [
+  ["node", "scripts/check-agent-rules.mjs"],
+  ["pnpm", "run", "fmt:check"],
+]) {
+  const result = spawnSync(program, args, { stdio: "inherit", shell: isWindows });
+  if (result.status !== 0) {
+    console.error("pre-commit: corrige lo anterior (prueba `pnpm fmt`) y vuelve a hacer commit.");
+    process.exit(1);
+  }
+}

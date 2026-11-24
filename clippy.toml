@@ -1,0 +1,5 @@
+# Las pruebas pueden usar unwrap/expect/panic; el código de producción no (CLAUDE.md §6).
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-print-in-tests = true

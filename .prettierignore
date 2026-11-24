@@ -1,0 +1,12 @@
+# Prettier formatea TypeScript, JavaScript y configuración.
+# Los documentos .md se editan a mano; los generados no se tocan.
+*.md
+pnpm-lock.yaml
+target/
+node_modules/
+dist/
+.turbo/
+spec/schemas/
+spec/openapi/
+spec/vectors/
+crates/social-core-wasm/pkg/

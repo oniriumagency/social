@@ -22,7 +22,7 @@
 
 | ID | Tarea | Estado | Herramienta | Rama o PR | Fecha |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| F0-T01 | Esqueleto del monorepo | pendiente | | | |
+| F0-T01 | Esqueleto del monorepo | en revisión | Claude Code | `tarea/F0-T01-esqueleto-monorepo` | 2026-11-24 |
 | F0-T02 | Integración continua | pendiente | | | |
 | F0-T03 | Plantillas y gobierno | bloqueada (D-04) | | | |
 | F0-T04 | Entorno local | pendiente | | | |
