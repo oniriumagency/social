@@ -257,7 +257,12 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
         ),
         (
             "campo extra en la envoltura",
-            replace_once(&s, "\"v\":1", "\"v\":1,\"extra\":true")?,
+            // En su posición canónica: con D-17, fuera de orden sería E_JSON_NOT_CANONICAL.
+            replace_once(
+                &s,
+                &format!(",\"id\":\"{id_hex}\""),
+                &format!(",\"extra\":true,\"id\":\"{id_hex}\""),
+            )?,
             ErrorCode::UnknownField,
         ),
         (
@@ -350,6 +355,30 @@ fn invalid_cases() -> Result<Vec<(&'static str, String, ErrorCode)>, CoreError> 
                 &format!("\"deep\":{too_deep},\"lang\":\"es\""),
             )?,
             ErrorCode::JsonInvalid,
+        ),
+        // Forma canónica en el cable (D-17, ADR-020 punto 11).
+        (
+            "espacio después de dos puntos",
+            replace_once(&s, "\"v\":1", "\"v\": 1")?,
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "claves fuera de orden",
+            format!(
+                "{{\"v\":1,{}",
+                replace_once(&s, ",\"v\":1}", "}")?.trim_start_matches('{')
+            ),
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "salto de línea al final",
+            format!("{s}\n"),
+            ErrorCode::JsonNotCanonical,
+        ),
+        (
+            "escape innecesario en una cadena",
+            replace_once(&s, "\"text\":\"hola\"", "\"text\":\"hol\\u0061\"")?,
+            ErrorCode::JsonNotCanonical,
         ),
     ])
 }
