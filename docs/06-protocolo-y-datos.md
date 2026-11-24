@@ -7,9 +7,10 @@ Especificación normativa de la versión 1 del protocolo. Las palabras DEBE, NO 
 - Bytes en hexadecimal en minúsculas, sin prefijo.
 - Tiempo en segundos Unix (entero).
 - Texto en UTF-8, normalizado a NFC por el cliente antes de firmar.
-- Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento.
+- Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento. Un literal con forma de entero fuera de ese rango, aunque no quepa en 64 bits, es `E_JSON_INT_RANGE`; `-0` y todo literal con `.`, `e` o `E` es `E_JSON_FLOAT`.
+- JSON: sin claves repetidas en un objeto y como mucho 127 niveles de listas y objetos anidados, contando el objeto exterior (`MAX_DEPTH`); un nivel más es `E_JSON_INVALID`.
 - Hash: SHA-256 para identificadores de evento. BLAKE3 para contenido binario.
-- Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
+- Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas con codificación no canónica, fuera de la curva, de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
 
 ## 2. Llaves
 
@@ -56,7 +57,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 **Validación.** Un receptor DEBE rechazar el evento si falla cualquiera de estos puntos, en este orden:
 
 1. Tamaño total mayor a 16 KiB.
-2. Esquema de `kind` inválido, campos desconocidos en la envoltura, claves repetidas, decimales o `null`.
+2. JSON fuera del subconjunto de §1 (claves repetidas, decimales, `null`, enteros fuera de rango, más de 127 niveles), campos desconocidos en la envoltura, esquema de la envoltura o de `kind` inválido, o `account` o `signer` que no son llaves públicas válidas.
 3. `id` distinto del calculado.
 4. `sig` inválida para `signer`.
 5. `signer` distinto de `account` y sin `device.grant` vigente y no revocado que cubra `kind` en `created_at`.
@@ -64,7 +65,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 7. Solo en la ingesta: `created_at` a más de 10 minutos del reloj del servidor.
 8. Límites del tipo (§4) o de frecuencia (§8).
 
-Los puntos 1 a 6 son **validación universal**: cliente, pasarela, indexador y nodo los aplican por igual. El punto 7 solo lo aplica quien ingesta.
+Los puntos 1 a 6 son **validación universal**: cliente, pasarela, indexador y nodo los aplican por igual. El punto 7 solo lo aplica quien ingesta. Quien firma aplica antes los puntos 1 a 4 a su propio evento: nunca se firma un evento que un receptor rechazaría (ADR-020).
 
 ## 4. Tipos de evento
 

@@ -124,9 +124,13 @@ impl UnsignedEvent {
 
     /// Calcula el identificador y firma con `key`, que debe corresponder a `signer`.
     ///
+    /// El resultado pasa por [`Event::parse_and_verify`] sobre su forma canónica: `sign`
+    /// aplica exactamente las mismas reglas que un receptor y nunca devuelve un evento
+    /// que la red rechazaría.
+    ///
     /// # Errors
-    /// `E_SCHEMA` si los campos no cumplen el esquema de la envoltura, o
-    /// `E_PUBKEY_INVALID` si `key` no corresponde a `signer`.
+    /// `E_PUBKEY_INVALID` si `key` no corresponde a `signer`, o el código del primer paso
+    /// de la validación universal (1 a 4) que el evento no cumpla.
     pub fn sign(self, key: &SigningKey) -> Result<Event, CoreError> {
         if key.verifying_key().to_bytes() != self.signer {
             return Err(CoreError::new(
@@ -134,26 +138,18 @@ impl UnsignedEvent {
                 "signer: la llave de firma no corresponde a signer",
             ));
         }
-        self.check_fields()?;
+        Event::parse_and_verify(&self.sign_unchecked(key).to_canonical_vec())
+    }
+
+    /// Firma sin validar nada. Solo para construir vectores de eventos inválidos.
+    pub(crate) fn sign_unchecked(self, key: &SigningKey) -> Event {
         let id = self.id();
         let sig = key.sign(&id).to_bytes();
-        Ok(Event {
+        Event {
             unsigned: self,
             id,
             sig,
-        })
-    }
-
-    fn check_fields(&self) -> Result<(), CoreError> {
-        check_created_at(self.created_at)?;
-        check_kind(&self.kind)?;
-        if self.tags.len() > MAX_TAGS {
-            return Err(CoreError::new(ErrorCode::Schema, "tags: máximo 16"));
         }
-        for (i, tag) in self.tags.iter().enumerate() {
-            Tag::from_json(&tag.to_json(), i)?;
-        }
-        Ok(())
     }
 }
 

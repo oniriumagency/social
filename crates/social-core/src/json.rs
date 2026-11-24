@@ -4,6 +4,7 @@
 //! - Sin `null` y sin números decimales ni exponenciales.
 //! - Enteros en el rango ±(2⁵³ − 1), representables sin pérdida en JavaScript.
 //! - Sin claves repetidas en un objeto (I-JSON, RFC 7493, que JCS exige).
+//! - Como mucho [`MAX_DEPTH`] niveles de listas y objetos anidados.
 //!
 //! Con esas restricciones, JCS se reduce a: claves ordenadas por unidades UTF-16, sin
 //! espacios, enteros en decimal y cadenas escapadas como `JSON.stringify` de ECMAScript.
@@ -19,6 +20,11 @@ use crate::{CoreError, ErrorCode};
 
 /// Mayor entero admitido: 2⁵³ − 1 (`Number.MAX_SAFE_INTEGER`).
 pub const MAX_SAFE_INT: i64 = 9_007_199_254_740_991;
+
+/// Máximo de niveles de listas y objetos anidados en un documento, contando el exterior
+/// (`docs/06` §1). Un nivel más es `E_JSON_INVALID`. serde_json aplica por su cuenta el
+/// mismo límite; este contador fija la regla del protocolo aunque cambie el analizador.
+pub const MAX_DEPTH: usize = 127;
 
 /// Valor JSON del protocolo. No puede representar `null` ni decimales.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,13 +44,19 @@ pub enum Json {
 impl Json {
     /// Analiza bytes JSON aplicando las restricciones del protocolo.
     ///
+    /// Un literal entero sin parte decimal ni exponente que no cabe en ±(2⁵³ − 1) es
+    /// `E_JSON_INT_RANGE`, también si no cabe en 64 bits. `-0` es `E_JSON_FLOAT`: no
+    /// tiene forma canónica como entero.
+    ///
     /// # Errors
     /// `E_JSON_INVALID`, `E_JSON_DUPLICATE_KEY`, `E_JSON_FLOAT`, `E_JSON_NULL` o
     /// `E_JSON_INT_RANGE`.
     pub fn parse(bytes: &[u8]) -> Result<Self, CoreError> {
         let mut de = serde_json::Deserializer::from_slice(bytes);
-        let value = de.deserialize_any(StrictVisitor).map_err(map_serde_error)?;
-        de.end().map_err(map_serde_error)?;
+        let value = de
+            .deserialize_any(StrictVisitor { depth: 1 })
+            .map_err(|e| map_serde_error(e, bytes))?;
+        de.end().map_err(|e| map_serde_error(e, bytes))?;
         Ok(value)
     }
 
@@ -216,8 +228,9 @@ const TAG_FLOAT: &str = "E_JSON_FLOAT";
 const TAG_NULL: &str = "E_JSON_NULL";
 const TAG_DUP: &str = "E_JSON_DUPLICATE_KEY";
 const TAG_RANGE: &str = "E_JSON_INT_RANGE";
+const TAG_DEPTH: &str = "E_JSON_INVALID: profundidad";
 
-fn map_serde_error(err: serde_json::Error) -> CoreError {
+fn map_serde_error(err: serde_json::Error, bytes: &[u8]) -> CoreError {
     let msg = err.to_string();
     let code = [
         (TAG_FLOAT, ErrorCode::JsonFloat),
@@ -228,10 +241,83 @@ fn map_serde_error(err: serde_json::Error) -> CoreError {
     .into_iter()
     .find(|(tag, _)| msg.starts_with(tag))
     .map_or(ErrorCode::JsonInvalid, |(_, code)| code);
+    // serde_json entrega como f64 tanto los decimales como los enteros que no caben en
+    // 64 bits. El primer número del documento que no es un entero de 64 bits es el que
+    // falló, porque el análisis va en orden: se mira su forma literal.
+    let code = if code == ErrorCode::JsonFloat {
+        first_non_i64_number(bytes).map_or(code, classify_number)
+    } else {
+        code
+    };
     CoreError::new(code, msg)
 }
 
-struct StrictVisitor;
+/// Código de un literal numérico que serde_json no entrega como entero.
+fn classify_number(token: &[u8]) -> ErrorCode {
+    let is_integer_syntax = !token.iter().any(|b| matches!(b, b'.' | b'e' | b'E'));
+    if is_integer_syntax && token != b"-0" {
+        ErrorCode::JsonIntRange
+    } else {
+        ErrorCode::JsonFloat
+    }
+}
+
+/// Primer literal numérico, fuera de cadenas, que no es un entero de 64 bits.
+fn first_non_i64_number(bytes: &[u8]) -> Option<&[u8]> {
+    let mut i = 0;
+    let mut in_string = false;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            match b {
+                b'\\' => i += 1,
+                b'"' => in_string = false,
+                _ => {}
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+            i += 1;
+            continue;
+        }
+        if b == b'-' || b.is_ascii_digit() {
+            let start = i;
+            while i < bytes.len()
+                && matches!(bytes[i], b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')
+            {
+                i += 1;
+            }
+            let token = &bytes[start..i];
+            let as_int = std::str::from_utf8(token)
+                .ok()
+                .filter(|t| t.parse::<i64>().is_ok() || t.parse::<u64>().is_ok());
+            if as_int.is_none() || token == b"-0" {
+                return Some(token);
+            }
+            continue;
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Visitante estricto. `depth` es el nivel del valor que visita: 1 para el exterior.
+struct StrictVisitor {
+    depth: usize,
+}
+
+impl StrictVisitor {
+    fn enter<E: de::Error>(&self) -> Result<StrictSeed, E> {
+        if self.depth > MAX_DEPTH {
+            return Err(E::custom(TAG_DEPTH));
+        }
+        Ok(StrictSeed {
+            depth: self.depth + 1,
+        })
+    }
+}
 
 impl<'de> Visitor<'de> for StrictVisitor {
     type Value = Json;
@@ -277,17 +363,19 @@ impl<'de> Visitor<'de> for StrictVisitor {
     }
 
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Json, A::Error> {
+        let child = self.enter()?;
         let mut items = Vec::new();
-        while let Some(item) = seq.next_element_seed(StrictSeed)? {
+        while let Some(item) = seq.next_element_seed(child)? {
             items.push(item);
         }
         Ok(Json::Array(items))
     }
 
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Json, A::Error> {
+        let child = self.enter()?;
         let mut out = BTreeMap::new();
         while let Some(key) = map.next_key::<String>()? {
-            let value = map.next_value_seed(StrictSeed)?;
+            let value = map.next_value_seed(child)?;
             if out.insert(key, value).is_some() {
                 return Err(de::Error::custom(TAG_DUP));
             }
@@ -296,13 +384,16 @@ impl<'de> Visitor<'de> for StrictVisitor {
     }
 }
 
-struct StrictSeed;
+#[derive(Clone, Copy)]
+struct StrictSeed {
+    depth: usize,
+}
 
 impl<'de> de::DeserializeSeed<'de> for StrictSeed {
     type Value = Json;
 
     fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Json, D::Error> {
-        d.deserialize_any(StrictVisitor)
+        d.deserialize_any(StrictVisitor { depth: self.depth })
     }
 }
 
@@ -323,7 +414,17 @@ mod tests {
         assert_eq!(code(r#"{"a":1,"a":2}"#), ErrorCode::JsonDuplicateKey);
         assert_eq!(code("9007199254740992"), ErrorCode::JsonIntRange);
         assert_eq!(code("-9007199254740992"), ErrorCode::JsonIntRange);
-        assert_eq!(code("18446744073709551616"), ErrorCode::JsonFloat);
+        assert_eq!(code("18446744073709551616"), ErrorCode::JsonIntRange);
+        assert_eq!(code("-9223372036854775809"), ErrorCode::JsonIntRange);
+        assert_eq!(
+            code("[1,\"-0.5 99999999999999999999\",99999999999999999999]"),
+            ErrorCode::JsonIntRange
+        );
+        assert_eq!(code("[99999999999999999999,1.5]"), ErrorCode::JsonIntRange);
+        assert_eq!(code("[1.5,99999999999999999999]"), ErrorCode::JsonFloat);
+        assert_eq!(code("-0"), ErrorCode::JsonFloat);
+        assert_eq!(code("[-0]"), ErrorCode::JsonFloat);
+        assert_eq!(code("1E3"), ErrorCode::JsonFloat);
         assert_eq!(code("{"), ErrorCode::JsonInvalid);
         assert_eq!(code("1 2"), ErrorCode::JsonInvalid);
         assert_eq!(code("\"\\ud800\""), ErrorCode::JsonInvalid);
@@ -339,6 +440,32 @@ mod tests {
             Json::parse(b"-9007199254740991").unwrap(),
             Json::Int(-MAX_SAFE_INT)
         );
+    }
+
+    fn nested(levels: usize) -> String {
+        format!("{}{}", "[".repeat(levels), "]".repeat(levels))
+    }
+
+    #[test]
+    fn depth_limit() {
+        assert!(Json::parse(nested(MAX_DEPTH).as_bytes()).is_ok());
+        assert_eq!(code(&nested(MAX_DEPTH + 1)), ErrorCode::JsonInvalid);
+        let objects = format!("{}1{}", "{\"a\":".repeat(MAX_DEPTH), "}".repeat(MAX_DEPTH));
+        assert!(Json::parse(objects.as_bytes()).is_ok());
+        let objects = format!("[{objects}]");
+        assert_eq!(code(&objects), ErrorCode::JsonInvalid);
+    }
+
+    /// El contador propio actúa aunque el analizador admitiera más niveles.
+    #[test]
+    fn own_depth_counter_rejects() {
+        let mut de = serde_json::Deserializer::from_str("[[]]");
+        let err = de
+            .deserialize_any(StrictVisitor { depth: MAX_DEPTH })
+            .unwrap_err();
+        assert_eq!(map_serde_error(err, b"").code, ErrorCode::JsonInvalid);
+        let custom = <serde_json::Error as de::Error>::custom(TAG_DEPTH);
+        assert!(map_serde_error(custom, b"").detail.contains("profundidad"));
     }
 
     /// RFC 8785 §3.2.2.2: ejemplo de escape de cadenas.
