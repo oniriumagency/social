@@ -129,7 +129,7 @@ Comercio (TPV)                 Ledger                    Billetera (usuario)
 - **TPV:** aplicación web instalable; no exige hardware especial.
 - **Roles:** dueño, cajero (solo cobra), contable (solo lee).
 
-**Modelos económicos** (decisión ejecutiva `15` D-03):
+**Modelos económicos** (decisión ejecutiva `15` D-03, decidida el 2026-11-24: modelo A; mientras no haya comercios aliados, la app muestra el saldo y como mucho ventajas digitales sin costo dentro de la app, sin anunciar canjes):
 
 | Modelo | Cómo funciona | Riesgo |
 | :-- | :-- | :-- |

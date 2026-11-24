@@ -6,7 +6,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | :-- | :-- | :-- | :-- | :-- |
 | D-01 | País y ciudad del piloto | Colombia. Ciudad: Bogotá | S3 (la ciudad) | **Decidida el 2026-11-24** (país y ciudad) |
 | D-02 | Cómo se prueba la humanidad | Varios métodos con niveles de confianza | — | **Decidida el 2026-11-23** |
-| D-03 | Modelo económico de los puntos | A: descuento financiado por el comercio | F4-T00 | Pendiente |
+| D-03 | Modelo económico de los puntos | A: descuento financiado por el comercio | F4-T00 | **Decidida el 2026-11-24** (A; se ratifica con el dictamen de F4-T00) |
 | D-04 | Licencias | AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo, especificación y SDK | F0-T03 | **Decidida el 2026-11-24** |
 | D-05 | Edad mínima | 18 años | F2 | Pendiente |
 | D-06 | Aceptar que la sanción máxima es temporal | Sí | F2 | Pendiente |
@@ -64,9 +64,15 @@ La tabla de `05` §4 es el punto de partida. La pregunta de fondo es si el nivel
 
 **En Colombia esta decisión pesa más**, porque el nivel 3 depende del pasaporte y la cédula solo llega al nivel 2. Si S1 muestra que pocos adultos tienen pasaporte con chip, quedarán pocos nodos remunerados. Recomendación: empezar solo con nivel 3, y revisar con la cifra de S1 y con los datos de los puntos de prueba de F3.
 
-## D-03. Modelo económico de los puntos
+## D-03. Modelo económico de los puntos — DECIDIDA
 
-Ver `09` §7. El modelo A no mueve dinero del proyecto y tiene poco riesgo regulatorio. El modelo B exige fondos y posiblemente licencia. La decisión final se toma con el dictamen legal de F4-T00.
+**Decisión del responsable (2026-11-24):** modelo **A**, descuento financiado por el comercio. Cuando haya aliados comerciales, el canje en comercios será la ruta principal.
+
+**Mientras no haya aliados:** la app dice que el nodo gana puntos y muestra el saldo, pero no anuncia al público en qué se pueden canjear. Como mucho se ofrecen ventajas digitales dentro de la propia app (por ejemplo, un emblema) que no le cuesten dinero al proyecto. Nada de esto adelanta fases: los puntos siguen sujetos a las compuertas G2, G3 y G4 y solo los gana el nivel 3 (I-14), y verificarse nunca da ventajas.
+
+**Pendiente:** el dictamen legal de F4-T00 ratifica el modelo antes de abrir el canje. El modelo B (el proyecto paga al comercio) solo se reabre con dictamen favorable y ADR.
+
+Ver `09` §7. El modelo A no mueve dinero del proyecto y tiene poco riesgo regulatorio. El modelo B exige fondos y posiblemente licencia.
 
 ## D-04. Licencias — DECIDIDA
 
@@ -139,4 +145,5 @@ Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` ig
 | 2026-11-24 | D-01 | El piloto es Colombia. Ciudad por defecto: Bogotá, pendiente de confirmar. Verificarse nunca se premia. | `00`, `01`, `04`, `05` §5.1, `07` §2.1, `09`, `10` §6, `12`, `14`, `16`, ADR-019, `CLAUDE.md`, `ANTIGRAVITY.md` |
 | 2026-11-24 | D-01 | Ciudad piloto confirmada: Bogotá. | `01`, `12`, `15`, ADR-019, `PROGRESO.md` |
 | 2026-11-24 | D-04 | AGPL-3.0-only para servicios, nodo y apps; Apache-2.0 para núcleo, especificación, SDK y herramientas. | `03`, `15`, ADR-011, `LICENSE`, `README.md`, `PROGRESO.md` |
+| 2026-11-24 | D-03 | Modelo A: descuento financiado por el comercio. Sin aliados, solo se muestra el saldo y ventajas digitales sin costo dentro de la app; se ratifica con el dictamen de F4-T00. | `09` §7, `15`, `PROGRESO.md` |
 | 2026-11-24 | D-17 | Los eventos solo son válidos en su forma canónica JCS exacta (`E_JSON_NOT_CANONICAL`). | `06` §1 y §3, `15`, ADR-020, `spec/vectors/envelope.json`, `PROGRESO.md` |

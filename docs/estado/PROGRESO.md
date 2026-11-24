@@ -15,7 +15,7 @@
 
 | Qué | Depende de |
 | :-- | :-- |
-| Compuerta G0 | Decisión D-03 y los cinco spikes |
+| Compuerta G0 | Los spikes S1, S2, S4 y S5 (pruebas físicas del responsable) |
 
 ## F0 — Cimientos y spikes
 
