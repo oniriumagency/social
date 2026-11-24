@@ -1,0 +1,46 @@
+# Política de dependencias de Rust (docs/11 §2 y §5). `pnpm check:supply` la aplica.
+
+[graph]
+all-features = true
+
+[advisories]
+# Avisos de seguridad de RustSec: cualquier vulnerabilidad o crate sin mantenimiento falla.
+version = 2
+yanked = "deny"
+ignore = []
+
+[licenses]
+version = 2
+# Licencias compatibles con AGPL-3.0 y Apache-2.0 (D-04).
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "CC0-1.0",
+]
+confidence-threshold = 0.9
+# La lista es una política, no un inventario: no avisar por licencias aún no usadas.
+unused-allowed-license = "allow"
+
+[licenses.private]
+# Los crates del propio repositorio no se publican; su licencia se fija en F0-T03 (D-04).
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+# Las bibliotecas criptográficas solo pueden ser dependencia directa de social-crypto (I-8).
+# Se añaden aquí, con `wrappers = ["social-crypto"]`, en la tarea que las introduce (F0-T05).
+deny = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -15,6 +15,8 @@
     "fmt": "node scripts/run.mjs fmt",
     "fmt:check": "node scripts/run.mjs fmt:check",
     "lint": "node scripts/run.mjs lint",
+    "lint:rust": "node scripts/run.mjs lint:rust",
+    "lint:ts": "node scripts/run.mjs lint:ts",
     "typecheck": "node scripts/run.mjs typecheck",
     "test": "node scripts/run.mjs test",
     "test:vectors": "node scripts/pending.mjs test:vectors F0-T06",
@@ -22,6 +24,10 @@
     "db:migrate": "node scripts/pending.mjs db:migrate F1-T02",
     "spec:gen": "node scripts/pending.mjs spec:gen F0-T09",
     "check:rules": "node scripts/check-agent-rules.mjs",
+    "check:rust": "node scripts/run.mjs check:rust",
+    "check:ts": "node scripts/run.mjs check:ts",
+    "check:supply": "node scripts/run.mjs check:supply",
+    "check:secrets": "node scripts/check-secrets.mjs",
     "check": "node scripts/run.mjs check"
   },
   "devDependencies": {
