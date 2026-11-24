@@ -35,6 +35,16 @@ if (probe.status !== 0) {
   process.exit(1);
 }
 
+// Destino: el triple anfitrión del toolchain de fuzz/. cargo-fuzz toma por defecto el
+// triple con el que se compiló su propio binario, que en un precompilado puede ser musl
+// y no tener la biblioteca estándar instalada en el nightly fijado.
+const rustc = spawnSync("rustc", ["-vV"], { cwd: fuzzDir, encoding: "utf8", shell: isWindows });
+const host = rustc.status === 0 ? /^host: (\S+)$/m.exec(rustc.stdout)?.[1] : undefined;
+if (!host) {
+  console.error("fuzz: no se pudo leer el triple anfitrión con `rustc -vV` en fuzz/.");
+  process.exit(1);
+}
+
 // Semillas: cada evento de los vectores dorados, de todas las listas. `event_build`
 // interpreta los bytes como decisiones, no como JSON: le sirven igual de punto de partida.
 const seeds = [];
@@ -49,10 +59,29 @@ for (const target of targets) {
   const corpus = join(fuzzDir, "corpus", target);
   mkdirSync(corpus, { recursive: true });
   seeds.filter(Boolean).forEach((s, i) => writeFileSync(join(corpus, `seed-${i}.json`), s));
-  console.log(`\n▶ fuzz ${target} (${seconds} s)`);
+  console.log(`\n▶ fuzz ${target} (${seconds} s, ${host})`);
+  const build = spawnSync("cargo", ["fuzz", "build", target, "--target", host], {
+    cwd: fuzzDir,
+    stdio: "inherit",
+    shell: isWindows,
+  });
+  if (build.status !== 0) {
+    console.error(`✖ fuzz ${target}: no compila para ${host}.`);
+    process.exit(build.status ?? 1);
+  }
   const result = spawnSync(
     "cargo",
-    ["fuzz", "run", target, corpus, "--", `-max_total_time=${seconds}`, "-max_len=20000"],
+    [
+      "fuzz",
+      "run",
+      target,
+      corpus,
+      "--target",
+      host,
+      "--",
+      `-max_total_time=${seconds}`,
+      "-max_len=20000",
+    ],
     { cwd: fuzzDir, stdio: "inherit", shell: isWindows },
   );
   if (result.status !== 0) {
