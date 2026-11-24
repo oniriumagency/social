@@ -1,0 +1,4 @@
+# cargo-fuzz necesita nightly (sanitizadores y libFuzzer). Solo afecta a este directorio.
+[toolchain]
+channel = "nightly"
+profile = "minimal"

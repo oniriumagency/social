@@ -31,7 +31,7 @@
 | F0-T07 | `social-core`: tipos y validación | en revisión | Claude Code | `tarea/F0-T07-tipos-y-validacion` | 2026-11-24 |
 | F0-T08 | Núcleo en WASM | en revisión | Claude Code | `tarea/F0-T08-nucleo-wasm` | 2026-11-24 |
 | F0-T09 | Esquemas y deriva | en revisión | Claude Code | `tarea/F0-T09-esquemas-y-deriva` | 2026-11-24 |
-| F0-T10 | Fuzzing | pendiente | | | |
+| F0-T10 | Fuzzing | en revisión | Claude Code | `tarea/F0-T10-fuzzing` | 2026-11-24 |
 | F0-T11 | Comprobación de reglas de agentes | en revisión | Claude Code | `tarea/F0-T11-reglas-en-ci` | 2026-11-24 |
 | F0-S1 | Spike: prueba de humanidad (Colombia) | pendiente | | | |
 | F0-S2 | Spike: red entre nodos | pendiente | | | |

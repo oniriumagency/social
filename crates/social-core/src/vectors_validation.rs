@@ -184,8 +184,13 @@ fn hex32(s: &str) -> Option<[u8; 32]> {
     Some(out)
 }
 
-/// Construye el contexto en memoria descrito en un archivo de vectores.
-fn load_context(ctx: &Json) -> Option<MemoryContext> {
+/// Construye el contexto en memoria de un archivo de vectores de validación ya analizado.
+#[must_use]
+pub fn load_context(suite: &Json) -> Option<MemoryContext> {
+    load_context_object(suite.as_object()?.get("context")?)
+}
+
+fn load_context_object(ctx: &Json) -> Option<MemoryContext> {
     let o = ctx.as_object()?;
     let keys = |name: &str| -> Option<Vec<[u8; 32]>> {
         o.get(name)?
@@ -885,7 +890,7 @@ pub fn generate_validation_suite() -> Result<String, CoreError> {
 
 /// Ejecuta una suite de validación ya analizada.
 pub(crate) fn run(suite: &BTreeMap<String, Json>, report: &mut SuiteReport) {
-    let Some(ctx) = suite.get("context").and_then(load_context) else {
+    let Some(ctx) = suite.get("context").and_then(load_context_object) else {
         report.failures.push("context ausente o mal formado".into());
         return;
     };

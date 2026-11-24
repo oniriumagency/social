@@ -109,6 +109,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm db:migrate` | Aplica migraciones. |
 | `pnpm spec:gen` | Regenera `spec/schemas/` (esquemas JSON de la envoltura y de cada tipo, desde la tabla de `social-core`). La OpenAPI se añade con la pasarela en F1. `pnpm spec:check` comprueba que no hay diferencias y forma parte de `pnpm check`. |
 | `pnpm vectors:gen` | Regenera `spec/vectors/` desde `social-core`. Cambiar un vector existente es un cambio de protocolo y exige ADR. |
+| `pnpm fuzz` | Fuzzing con cargo-fuzz (nightly, solo en `fuzz/`): `json_parse`, `event_parse` y `event_validate`, sembrados con los vectores dorados. Por defecto 60 s por objetivo; `pnpm fuzz <objetivo> <segundos>`. CI lo ejecuta cada noche. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
 | `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
 | `pnpm check:supply` | `cargo-deny` (licencias, orígenes, crates prohibidos, avisos de RustSec) y `pnpm audit`. |
