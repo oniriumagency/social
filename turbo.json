@@ -9,6 +9,8 @@
         "../../crates/**/*.rs",
         "../../crates/**/Cargo.toml",
         "../../Cargo.lock",
+        "../../Cargo.toml",
+        "../../rust-toolchain.toml",
         "../../scripts/build-wasm.mjs"
       ]
     },

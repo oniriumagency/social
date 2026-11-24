@@ -37,3 +37,10 @@ path = "fuzz_targets/event_validate.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "event_build"
+path = "fuzz_targets/event_build.rs"
+test = false
+doc = false
+bench = false

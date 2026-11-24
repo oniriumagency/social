@@ -8,6 +8,7 @@ import {
   eventId,
   protocolVersion,
   verifyEnvelope,
+  verifyEnvelopeBytes,
 } from "../src/index.ts";
 import { loadCoreInNode, readVectors } from "./load.ts";
 
@@ -29,6 +30,29 @@ describe("@social/core", () => {
       expect(verifyEnvelope(vector.expect.event)).toBe(vector.expect.event);
       expect(eventId(vector.expect.event)).toBe(vector.expect.id);
     }
+  });
+
+  it("calcula en WASM el mismo id que el nativo para todo el corpus generado", () => {
+    const corpus = JSON.parse(readVectors("ids.json")) as {
+      accept: { event: string; expect: { id: string } }[];
+    };
+    expect(corpus.accept.length).toBe(128);
+    for (const vector of corpus.accept) {
+      expect(eventId(vector.event)).toBe(vector.expect.id);
+      expect(verifyEnvelopeBytes(new TextEncoder().encode(vector.event))).toBe(vector.event);
+    }
+  });
+
+  it("valida los bytes exactos: UTF-8 inválido es E_JSON_INVALID", () => {
+    const suite = JSON.parse(readVectors("envelope.json")) as { valid: ValidVector[] };
+    const event = suite.valid[0]?.expect.event ?? "";
+    const bytes = new TextEncoder().encode(event.replace('"hola"', '"hol\u0000"'));
+    // Sustituto suelto codificado en UTF-8 (ED A0 80) en lugar de «a»: no es UTF-8 válido.
+    const raw = new TextEncoder().encode(event);
+    const at = raw.indexOf(0x61, event.indexOf('"hola"') + 4);
+    const broken = new Uint8Array([...raw.slice(0, at), 0xed, 0xa0, 0x80, ...raw.slice(at + 1)]);
+    expect(() => verifyEnvelopeBytes(broken)).toThrow(/E_JSON_INVALID/);
+    expect(() => verifyEnvelopeBytes(bytes)).toThrow(CoreError);
   });
 
   it("lanza CoreError con el código estable", () => {

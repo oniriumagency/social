@@ -44,6 +44,8 @@ const STEPS = {
     ["cargo", "deny", "--locked", "check"],
     ["pnpm", "audit", "--prod", "--audit-level", "moderate"],
   ],
+  // Los objetivos de fuzz/ compilan con su archivo de bloqueo (CI, trabajo fuzz-build).
+  "check:fuzz": [["cargo", "check", "--locked", "--manifest-path", "fuzz/Cargo.toml", "--bins"]],
 };
 
 STEPS.lint = [...STEPS["lint:rust"], ...STEPS["lint:ts"]];
