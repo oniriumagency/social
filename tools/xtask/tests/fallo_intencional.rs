@@ -3,5 +3,9 @@
 
 #[test]
 fn ci_must_go_red() {
-    assert_eq!(1 + 1, 3, "fallo intencional: CI debe marcar este PR en rojo");
+    assert_eq!(
+        1 + 1,
+        3,
+        "fallo intencional: CI debe marcar este PR en rojo"
+    );
 }
