@@ -9,7 +9,7 @@ Especificación normativa de la versión 1 del protocolo. Las palabras DEBE, NO 
 - Texto en UTF-8, normalizado a NFC por el cliente antes de firmar.
 - Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento.
 - Hash: SHA-256 para identificadores de evento. BLAKE3 para contenido binario.
-- Firma: Ed25519 con verificación estricta (se rechazan firmas y llaves no canónicas).
+- Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
 
 ## 2. Llaves
 
