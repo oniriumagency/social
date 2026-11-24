@@ -59,7 +59,7 @@ Notas de tareas que quedaron a medias. Formato:
 
 ### F0 (código) — 2026-11-24 — Claude Code
 - Hecho: F0-T01 a T11 y el spike S3 fusionados en `main` (PR #1 a #12 y #14), con revisión independiente de los PR 5 a 10. CI en verde en Linux y Windows. El PR de prueba con fallo intencional (#13) quedó en rojo y se cerró sin fusionar.
-- Hecho también (2026-11-24): protección de `main` activada por el responsable con un ruleset (PR obligatorio, 9 checks requeridos, sin bypass, sin force push ni borrado). Con esto se cumple el último criterio de F0-T02.
+- Hecho también (2026-11-24): protección de `main` activada por el responsable con un ruleset (PR obligatorio, 10 checks requeridos, incluido `fuzz-build`, sin bypass, sin force push ni borrado). Con esto se cumple el último criterio de F0-T02.
 - Falta: dato oficial de barrios de IDECA y sus licencias para S3 (bloqueado por la red).
 - Probado: bootstrap y check desde un clon limpio (T01); `pnpm dev:infra` con Docker real (T04); vectores en nativo, Node y Chromium (T08); fuzzing por objetivo sin fallos (T10).
 - Preocupa: `CLAUDE.md` y `ANTIGRAVITY.md` §7 aún dicen MinIO; en local se usa SeaweedFS (`docs/03`, `docs/11`); cambiarlo exige aprobación humana. Los spikes S1, S2, S4 y S5 necesitan dispositivos y redes reales.
