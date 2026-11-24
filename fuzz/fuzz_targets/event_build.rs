@@ -3,17 +3,19 @@
 //! por la validación universal con su contexto. Así el fuzzer llega a los pasos 5 y 6
 //! (papeles de firma, delegaciones, atestación y nivel) con eventos nuevos.
 //!
-//! Propiedades: nunca hay pánico, y lo que `validate_event` acepta lo acepta también
-//! `validate_parsed` sobre el evento ya analizado.
+//! Propiedades: nunca hay pánico; lo que `validate_event` acepta lo acepta también
+//! `validate_parsed`; y todo evento aceptado respeta los papeles de firma: un tipo no
+//! delegable lo firma la cuenta o el registro, y un dispositivo solo firma con una
+//! delegación que cubre el tipo y está vigente y sin revocar en `created_at`.
 #![no_main]
 
 use std::collections::BTreeMap;
 
 use libfuzzer_sys::arbitrary::{Result, Unstructured};
 use libfuzzer_sys::fuzz_target;
-use social_core::kinds::{FieldType, KINDS};
+use social_core::kinds::{FieldType, KINDS, spec};
 use social_core::vectors::{CID, T0, TEST_KEYS, ZONE, sign_with_test_key, test_public_key};
-use social_core::{Event, Json, Tag, UnsignedEvent, validate_parsed};
+use social_core::{Event, Json, Tag, UnsignedEvent, ValidationContext, validate_parsed};
 
 #[path = "context.rs"]
 mod context;
@@ -197,5 +199,24 @@ fuzz_target!(|data: &[u8]| {
             validate_parsed(&parsed, ctx).is_ok(),
             "validate_event acepta y validate_parsed rechaza"
         );
+        let (account, signer, at) = (parsed.account(), parsed.signer(), parsed.created_at());
+        let delegable = spec(parsed.kind()).is_none_or(|k| k.signer.delegable());
+        if !delegable {
+            assert!(
+                signer == account || ctx.is_registry_key(signer),
+                "tipo no delegable aceptado con la firma de un dispositivo"
+            );
+        } else if signer != account {
+            let grant = ctx
+                .device_grant(account, signer, at)
+                .expect("dispositivo aceptado sin delegación");
+            assert!(
+                grant.caps.iter().any(|c| c == parsed.kind())
+                    && grant.granted_at <= at
+                    && at < grant.expires_at
+                    && grant.revoked_at.is_none_or(|r| at < r),
+                "dispositivo aceptado con una delegación que no cubre el evento"
+            );
+        }
     }
 });
