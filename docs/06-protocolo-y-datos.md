@@ -7,9 +7,10 @@ Especificación normativa de la versión 1 del protocolo. Las palabras DEBE, NO 
 - Bytes en hexadecimal en minúsculas, sin prefijo.
 - Tiempo en segundos Unix (entero).
 - Texto en UTF-8, normalizado a NFC por el cliente antes de firmar.
-- Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento.
+- Números: solo enteros en el rango ±(2⁵³ − 1). Los decimales y `null` están prohibidos en cualquier evento. Un literal con forma de entero fuera de ese rango, aunque no quepa en 64 bits, es `E_JSON_INT_RANGE`; `-0` y todo literal con `.`, `e` o `E` es `E_JSON_FLOAT`.
+- JSON: sin claves repetidas en un objeto y como mucho 127 niveles de listas y objetos anidados, contando el objeto exterior (`MAX_DEPTH`); un nivel más es `E_JSON_INVALID`.
 - Hash: SHA-256 para identificadores de evento. BLAKE3 para contenido binario.
-- Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
+- Firma: Ed25519 con verificación estricta: se rechazan firmas no canónicas (`s` no reducido, `R` no canónico) y llaves públicas con codificación no canónica, fuera de la curva, de orden pequeño o con componente de torsión (orden mixto). Lo comprueban los vectores de Wycheproof en `crates/social-crypto`.
 
 ## 2. Llaves
 
@@ -56,7 +57,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 **Validación.** Un receptor DEBE rechazar el evento si falla cualquiera de estos puntos, en este orden:
 
 1. Tamaño total mayor a 16 KiB.
-2. Esquema de `kind` inválido, campos desconocidos en la envoltura, claves repetidas, decimales o `null`.
+2. JSON fuera del subconjunto de §1 (claves repetidas, decimales, `null`, enteros fuera de rango, más de 127 niveles), campos desconocidos en la envoltura, esquema de la envoltura o de `kind` inválido, esquema o límites del contenido de un tipo conocido (§4), o `account` o `signer` que no son llaves públicas válidas.
 3. `id` distinto del calculado.
 4. `sig` inválida para `signer`.
 5. `signer` distinto de `account` y sin `device.grant` vigente y no revocado que cubra `kind` en `created_at`.
@@ -64,7 +65,7 @@ La identidad pública de una cuenta es la llave pública raíz. Para mostrarla s
 7. Solo en la ingesta: `created_at` a más de 10 minutos del reloj del servidor.
 8. Límites del tipo (§4) o de frecuencia (§8).
 
-Los puntos 1 a 6 son **validación universal**: cliente, pasarela, indexador y nodo los aplican por igual. El punto 7 solo lo aplica quien ingesta.
+Los puntos 1 a 6 son **validación universal**: cliente, pasarela, indexador y nodo los aplican por igual. El punto 7 solo lo aplica quien ingesta. Quien firma aplica antes los puntos 1 a 4 a su propio evento: nunca se firma un evento que un receptor rechazaría (ADR-020).
 
 ## 4. Tipos de evento
 
@@ -87,9 +88,9 @@ Los puntos 1 a 6 son **validación universal**: cliente, pasarela, indexador y n
 
 Reglas:
 
-- **Esquema estricto.** En el contenido de un tipo conocido no se admiten campos que no estén en la tabla (`E_UNKNOWN_FIELD`): así ningún cliente puede colar datos no previstos, por ejemplo coordenadas (I-2). Los textos van en NFC (`E_TEXT_NOT_NFC`). Formatos: zona `z_` más 12 caracteres base32 de Crockford en minúsculas; `cid` `b3_` más 52 caracteres base32 (RFC 4648) en minúsculas; `lang` BCP 47; `reason`, `reason_code` y `purpose` son códigos `[a-z][a-z0-9_]*` de hasta 32 bytes. `post.create` lleva `reply_to` y `root` juntos o ninguno, y texto o imágenes. `device.grant` lleva de 1 a 32 `caps` sin repetir y un `label` de hasta 50 caracteres.
+- **Esquema estricto.** En el contenido de un tipo conocido no se admiten campos que no estén en la tabla (`E_UNKNOWN_FIELD`): así ningún cliente puede colar datos no previstos, por ejemplo coordenadas (I-2). Los textos van en NFC (`E_TEXT_NOT_NFC`). Formatos: zona `z_` más 12 caracteres base32 de Crockford en minúsculas; `cid` `b3_` más 52 caracteres base32 (RFC 4648) en minúsculas, con los 4 bits sobrantes del último carácter a cero (termina en `a` o `q`), para que cada contenido tenga una sola escritura; `lang` BCP 47; `reason`, `reason_code` y `purpose` son códigos `[a-z][a-z0-9_]*` de hasta 32 bytes. `post.create` lleva `reply_to` y `root` juntos o ninguno, y texto o imágenes. `device.grant` lleva de 1 a 32 `caps` sin repetir y un `label` de hasta 50 caracteres; una cap no puede ser un tipo conocido que no firme un dispositivo (los de raíz, registro u operador). Las etiquetas `t` también van en NFC.
 - **Límites del tipo** (longitudes, número de imágenes, 90 días de delegación, 72 horas de rotación) se comprueban junto con el esquema y fallan con `E_LIMIT_EXCEEDED`.
-- **Quién firma (paso 5).** «Raíz» exige `signer == account`; «Dispositivo» exige un dispositivo delegado distinto de la raíz; «Registro» y «Operador» exigen `signer == account` y una llave publicada del registro o de un operador, y no necesitan atestación de cuenta. `account.rotate` firmado por el registro es la rotación de recuperación. Un tipo desconocido lo puede firmar la raíz o un dispositivo cuya delegación lo cubra. Errores: `E_SIGNER_ROLE`, `E_DELEGATION_MISSING`, `E_DELEGATION_REVOKED` (evento con `created_at` igual o posterior a la revocación), `E_DELEGATION_EXPIRED`, `E_DELEGATION_SCOPE`.
+- **Quién firma (paso 5).** «Raíz» exige `signer == account`; «Dispositivo» exige un dispositivo delegado distinto de la raíz; «Raíz o dispositivo» acepta los dos; «Raíz antigua, o registro» acepta solo la raíz o una llave del registro, nunca un dispositivo; «Registro» y «Operador» exigen `signer == account` y una llave publicada del registro o de un operador, y no necesitan atestación de cuenta. `account.rotate` firmado por el registro es la rotación de recuperación. Un tipo desconocido lo puede firmar la raíz o un dispositivo cuya delegación lo cubra. Solo los papeles «Dispositivo» y «Raíz o dispositivo» consultan delegaciones. La delegación que cuenta es la vigente en `created_at`: la del `device.grant` más reciente anterior o igual a ese instante, de modo que renovar una delegación no invalida los eventos firmados con la anterior. Errores: `E_SIGNER_ROLE`, `E_DELEGATION_MISSING`, `E_DELEGATION_REVOKED` (evento con `created_at` igual o posterior a la revocación), `E_DELEGATION_EXPIRED`, `E_DELEGATION_SCOPE`.
 - **Atestación y nivel (paso 6).** `E_ATTESTATION_MISSING` si no hay atestación vigente en `created_at`; `E_LEVEL_INSUFFICIENT` si el nivel no alcanza para el contenido (nivel 1: sin imágenes ni avatar, `05` §4).
 - Los vectores dorados de `spec/vectors/validation.json` incluyen un caso por cada regla de rechazo.
 - No hay edición en la versión 1. Corregir es borrar y volver a publicar.
