@@ -54,3 +54,18 @@ fn every_rejection_rule_has_a_vector() {
         );
     }
 }
+
+const IDS: &str = include_str!("../../../spec/vectors/ids.json");
+
+/// Corpus generado: el núcleo nativo recalcula cada `id` (WASM lo hace en `@social/core`).
+#[test]
+fn id_corpus_passes_and_has_not_drifted() {
+    let report = run_suite(IDS);
+    assert!(report.ok(), "fallos: {:#?}", report.failures);
+    assert_eq!(report.passed, social_core::vectors_ids::CORPUS_SIZE);
+    let generated = social_core::vectors_ids::generate_ids_suite();
+    assert!(
+        generated.as_deref() == Ok(IDS.replace("\r\n", "\n").as_str()),
+        "spec/vectors/ids.json no coincide con el generador"
+    );
+}

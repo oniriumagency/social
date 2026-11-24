@@ -8,8 +8,9 @@ beforeAll(loadCoreInNode);
 
 describe("vectores dorados en WASM (Node)", () => {
   for (const [file, expected] of [
-    ["envelope.json", 25],
-    ["validation.json", 51],
+    ["envelope.json", 29],
+    ["validation.json", 60],
+    ["ids.json", 128],
   ] as const) {
     it(file, () => {
       const report = runVectorSuite(readVectors(file));

@@ -568,5 +568,10 @@ fn check_accept(vector: &Json) -> Result<(), String> {
     if event.to_json().to_canonical_string() != raw {
         return Err(format!("[aceptar] {name}: serialización canónica distinta"));
     }
+    if let Some(id) = get(vector, &["expect", "id"]).and_then(Json::as_str)
+        && hex::encode(event.id()) != id
+    {
+        return Err(format!("[aceptar] {name}: id distinto"));
+    }
     Ok(())
 }

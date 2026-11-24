@@ -17,6 +17,7 @@ pub mod json;
 pub mod kinds;
 mod validate;
 pub mod vectors;
+pub mod vectors_ids;
 mod vectors_validation;
 
 pub use error::{CoreError, ErrorCode};

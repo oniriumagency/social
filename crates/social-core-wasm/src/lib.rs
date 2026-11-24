@@ -35,6 +35,19 @@ pub fn verify_envelope(event_json: &str) -> Result<String, JsError> {
         .map_err(|e| to_js(&e))
 }
 
+/// Como `verifyEnvelope`, pero sobre los bytes exactos recibidos de la red. Una cadena de
+/// JavaScript no puede llevar UTF-8 inválido: wasm-bindgen cambiaría en silencio un
+/// sustituto suelto por U+FFFD. Con bytes, el núcleo ve exactamente lo que llegó (I-9).
+///
+/// # Errors
+/// Lanza un `Error` con el código estable del primer paso que falla.
+#[wasm_bindgen(js_name = verifyEnvelopeBytes)]
+pub fn verify_envelope_bytes(event: &[u8]) -> Result<String, JsError> {
+    Event::parse_and_verify(event)
+        .map(|e| e.to_json().to_canonical_string())
+        .map_err(|e| to_js(&e))
+}
+
 /// Identificador hexadecimal de un evento ya verificado.
 ///
 /// # Errors
