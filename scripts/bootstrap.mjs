@@ -41,6 +41,11 @@ run("pnpm", ["install"]);
 run("cargo", ["fetch", "--locked"]);
 run("cargo", ["build", "--workspace", "--locked"]);
 
+// cargo-deny es obligatorio para `pnpm check` (docs/11 §1). Se instala una sola vez.
+if (!has("cargo-deny")) {
+  run("cargo", ["install", "cargo-deny", "--locked"]);
+}
+
 // Los ganchos viven en .githooks y son scripts de Node (sin shell).
 if (has("git") && run("git", ["rev-parse", "--git-dir"], { optional: true })) {
   run("git", ["config", "core.hooksPath", ".githooks"]);

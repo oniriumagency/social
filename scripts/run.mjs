@@ -23,30 +23,50 @@ const STEPS = {
     ["cargo", "fmt", "--all", "--check"],
     ["pnpm", "exec", "prettier", "--check", "--log-level", "warn", "."],
   ],
-  lint: [
+  "lint:rust": [
     ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
+  ],
+  "lint:ts": [
     ["pnpm", "exec", "eslint", "--max-warnings", "0", "."],
     ["pnpm", "exec", "turbo", "run", "lint"],
   ],
-  typecheck: [
-    ["cargo", "check", "--workspace", "--all-targets", "--locked"],
-    ["pnpm", "exec", "turbo", "run", "typecheck"],
-  ],
-  test: [
-    ["cargo", "test", "--workspace", "--locked"],
-    ["pnpm", "exec", "turbo", "run", "test"],
+  "typecheck:rust": [["cargo", "check", "--workspace", "--all-targets", "--locked"]],
+  "typecheck:ts": [["pnpm", "exec", "turbo", "run", "typecheck"]],
+  "test:rust": [["cargo", "test", "--workspace", "--locked"]],
+  "test:ts": [["pnpm", "exec", "turbo", "run", "test"]],
+  // Cadena de suministro (docs/11 §5): licencias, orígenes, crates prohibidos y avisos de seguridad.
+  "check:supply": [
+    ["cargo", "deny", "--locked", "check"],
+    ["pnpm", "audit", "--prod", "--audit-level", "moderate"],
   ],
 };
+
+STEPS.lint = [...STEPS["lint:rust"], ...STEPS["lint:ts"]];
+STEPS.typecheck = [...STEPS["typecheck:rust"], ...STEPS["typecheck:ts"]];
+STEPS.test = [...STEPS["test:rust"], ...STEPS["test:ts"]];
+
+// Lo que CI ejecuta por lenguaje, en Linux y Windows. Son las mismas órdenes que en local.
+STEPS["check:rust"] = [
+  ["cargo", "fmt", "--all", "--check"],
+  ...STEPS["lint:rust"],
+  ...STEPS["test:rust"],
+];
+STEPS["check:ts"] = [
+  ["pnpm", "exec", "prettier", "--check", "--log-level", "warn", "."],
+  ...STEPS["lint:ts"],
+  ...STEPS["typecheck:ts"],
+  ...STEPS["test:ts"],
+];
 
 // `pnpm check` agrupa todo lo que debe pasar antes de un PR (docs/11 §3).
 STEPS.check = [
   ["node", "scripts/check-agent-rules.mjs"],
-  ...STEPS["fmt:check"],
-  ...STEPS.lint,
-  ...STEPS.typecheck,
-  ...STEPS.test,
+  ...STEPS["check:rust"],
+  ...STEPS["check:ts"],
   ["pnpm", "run", "test:vectors"],
   ["pnpm", "run", "spec:gen"],
+  ...STEPS["check:supply"],
+  ["node", "scripts/check-secrets.mjs"],
 ];
 
 const order = process.argv[2];
