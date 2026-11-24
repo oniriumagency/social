@@ -1,0 +1,44 @@
+Social: licencias / licensing
+=============================
+
+Este repositorio usa dos licencias (decisión D-04, ADR-011).
+This repository uses two licenses (decision D-04, ADR-011).
+
+Apache-2.0 (LICENSES/Apache-2.0.txt): protocolo, núcleo y SDK / protocol, core and SDK
+  crates/social-crypto/
+  crates/social-core/
+  crates/social-core-wasm/
+  crates/social-zones/
+  packages/core/
+  packages/config/
+  spec/
+  tools/
+  fuzz/
+  scripts/
+  docs/
+
+AGPL-3.0-only (LICENSES/AGPL-3.0.txt): servicios, nodo y aplicaciones / services, node and apps
+  services/
+  apps/
+  packages/app/
+  packages/ui/
+  packages/i18n/
+  crates/social-governor/
+  crates/social-net/
+  crates/social-storage/
+
+Cualquier archivo no listado arriba (configuración de la raíz, CI, infra) es Apache-2.0.
+Any file not listed above (root configuration, CI, infra) is Apache-2.0.
+
+Cada paquete declara su licencia en su Cargo.toml o package.json con un
+identificador SPDX. Si un paquete y este archivo discrepan, manda el paquete.
+Each package declares its license in Cargo.toml or package.json with an SPDX
+identifier. If a package and this file disagree, the package wins.
+
+Los datos geográficos de terceros que se publiquen con el catálogo de zonas
+llevan su propia licencia (por ejemplo ODbL-1.0 para datos de OpenStreetMap);
+ver docs/spikes/S3-zonas.md.
+Third-party geographic data published with the zone catalog keeps its own
+license (for example ODbL-1.0 for OpenStreetMap data); see docs/spikes/S3-zonas.md.
+
+Copyright (c) 2026 Los autores de Social / The Social authors

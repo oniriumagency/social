@@ -7,7 +7,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-01 | País y ciudad del piloto | Colombia. Ciudad: Bogotá | S3 (la ciudad) | **Decidida el 2026-11-24** (país y ciudad) |
 | D-02 | Cómo se prueba la humanidad | Varios métodos con niveles de confianza | — | **Decidida el 2026-11-23** |
 | D-03 | Modelo económico de los puntos | A: descuento financiado por el comercio | F4-T00 | Pendiente |
-| D-04 | Licencias | AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo, especificación y SDK | F0-T03 | Pendiente |
+| D-04 | Licencias | AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo, especificación y SDK | F0-T03 | **Decidida el 2026-11-24** |
 | D-05 | Edad mínima | 18 años | F2 | Pendiente |
 | D-06 | Aceptar que la sanción máxima es temporal | Sí | F2 | Pendiente |
 | D-07 | Revelar la nacionalidad en la inscripción | No | F2 | Pendiente |
@@ -66,7 +66,12 @@ La tabla de `05` §4 es el punto de partida. La pregunta de fondo es si el nivel
 
 Ver `09` §7. El modelo A no mueve dinero del proyecto y tiene poco riesgo regulatorio. El modelo B exige fondos y posiblemente licencia. La decisión final se toma con el dictamen legal de F4-T00.
 
-## D-04. Licencias
+## D-04. Licencias — DECIDIDA
+
+**Decisión (2026-11-24):** AGPL-3.0-only en servicios, nodo y apps; Apache-2.0 en núcleo, especificación, SDK y herramientas. El reparto por carpeta está en `LICENSE` y cada paquete lo declara con su identificador SPDX. Los datos geográficos conservan su licencia (ODbL para OpenStreetMap, ver `docs/spikes/S3-zonas.md`).
+
+Opciones que se consideraron:
+
 
 - **AGPL-3.0** en servicios, nodo y apps: quien opere una versión modificada debe publicar sus cambios. Protege frente a forks cerrados.
 - **Apache-2.0** en núcleo, especificación y SDK: facilita que terceros implementen el protocolo.
@@ -109,3 +114,4 @@ Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; 
 | 2026-11-23 | — | Puntaje de confianza dinámico: sube al superar verificaciones, baja al fallarlas o ignorarlas. Las cuentas de puntaje bajo se vigilan más y reciben más verificaciones al azar. | `05` §6, `06`, `10`, `12`, `14`, ADR-018 |
 | 2026-11-24 | D-01 | El piloto es Colombia. Ciudad por defecto: Bogotá, pendiente de confirmar. Verificarse nunca se premia. | `00`, `01`, `04`, `05` §5.1, `07` §2.1, `09`, `10` §6, `12`, `14`, `16`, ADR-019, `CLAUDE.md`, `ANTIGRAVITY.md` |
 | 2026-11-24 | D-01 | Ciudad piloto confirmada: Bogotá. | `01`, `12`, `15`, ADR-019, `PROGRESO.md` |
+| 2026-11-24 | D-04 | AGPL-3.0-only para servicios, nodo y apps; Apache-2.0 para núcleo, especificación, SDK y herramientas. | `03`, `15`, ADR-011, `LICENSE`, `README.md`, `PROGRESO.md` |

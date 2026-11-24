@@ -30,7 +30,7 @@
 | **Pruebas** | `cargo test`, `proptest`, `cargo-fuzz`, Vitest, Playwright, k6 | Detalle en `14`. | Nuevo |
 | **Monorepo y tareas** | Workspace de Cargo + pnpm + Turborepo; órdenes únicas en el `package.json` raíz | Las mismas órdenes en Windows, macOS y Linux, sin scripts de shell. | Nuevo |
 | **Integración continua** | GitHub Actions en Linux y Windows (macOS para builds de Tauri) | El desarrollo ocurre en Windows; CI debe cubrirlo. | Nuevo |
-| **Licencias** | Por defecto: **AGPL-3.0** para servicios, nodo y apps; **Apache-2.0** para núcleo, especificación y SDK | Protege contra forks cerrados del servicio y facilita la adopción del protocolo. Pendiente de confirmación (`15` D-04). | Se concreta |
+| **Licencias** | **AGPL-3.0-only** para servicios, nodo y apps; **Apache-2.0** para núcleo, especificación, SDK y herramientas | Protege contra forks cerrados del servicio y facilita la adopción del protocolo. Decidido (`15` D-04, `LICENSE`). | Decidido |
 
 ---
 

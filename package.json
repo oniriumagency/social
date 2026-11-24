@@ -2,6 +2,7 @@
   "name": "social",
   "private": true,
   "description": "Red social de microblogging local y global, humana y privada (nombre en clave).",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22.12.0"
