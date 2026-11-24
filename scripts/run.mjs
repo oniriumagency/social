@@ -55,6 +55,8 @@ STEPS["check:rust"] = [
   ["cargo", "fmt", "--all", "--check"],
   ...STEPS["lint:rust"],
   ...STEPS["test:rust"],
+  // Esquemas de spec/ sin deriva (trabajo `spec` de docs/11 §5).
+  ["cargo", "run", "--locked", "-p", "xtask", "--", "spec", "--check"],
 ];
 STEPS["check:ts"] = [
   ["pnpm", "exec", "prettier", "--check", "--log-level", "warn", "."],
@@ -69,7 +71,6 @@ STEPS.check = [
   ...STEPS["check:rust"],
   ...STEPS["check:ts"],
   ["pnpm", "run", "test:vectors"],
-  ["pnpm", "run", "spec:gen"],
   ...STEPS["check:supply"],
   ["node", "scripts/check-secrets.mjs"],
 ];

@@ -15,6 +15,7 @@ mod event;
 mod hexfmt;
 pub mod json;
 pub mod kinds;
+pub mod schema;
 mod validate;
 pub mod vectors;
 mod vectors_validation;

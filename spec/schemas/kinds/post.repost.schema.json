@@ -1,0 +1,1 @@
+{"$id":"https://social.invalid/spec/schemas/kinds/post.repost.schema.json","$schema":"https://json-schema.org/draft/2020-12/schema","additionalProperties":false,"properties":{"target":{"pattern":"^[0-9a-f]{64}$","type":"string"}},"required":["target"],"title":"Contenido de post.repost","type":"object","x-rules":"","x-signer":"device"}

@@ -1,0 +1,1 @@
+{"$id":"https://social.invalid/spec/schemas/kinds/post.delete.schema.json","$schema":"https://json-schema.org/draft/2020-12/schema","additionalProperties":false,"properties":{"target":{"pattern":"^[0-9a-f]{64}$","type":"string"}},"required":["target"],"title":"Contenido de post.delete","type":"object","x-rules":"Lápida. Solo el autor.","x-signer":"device"}

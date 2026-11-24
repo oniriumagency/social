@@ -1,9 +1,13 @@
 //! Esquema y límites de cada `kind` de `docs/06` §4.
 //!
-//! Cada tipo conocido declara: quién puede firmarlo, si exige atestación, qué nivel
-//! mínimo exige su contenido, su esquema (paso 2) y sus límites (paso 8). En el
-//! contenido de un tipo conocido no se admiten campos desconocidos: así ningún cliente
-//! puede colar datos no previstos (por ejemplo, coordenadas, I-2).
+//! Cada tipo conocido se declara una sola vez en [`KINDS`]: quién lo firma y qué campos
+//! lleva su contenido, con su tipo, formato y límite. De esa tabla salen a la vez la
+//! validación (este módulo) y los esquemas JSON publicados en `spec/schemas/`
+//! (`crate::schema`, `pnpm spec:gen`), así que no pueden divergir. Las reglas que
+//! relacionan varios campos (plazos, `reply_to` con `root`...) están en `check_rules`.
+//!
+//! En el contenido de un tipo conocido no se admiten campos desconocidos: así ningún
+//! cliente puede colar datos no previstos (por ejemplo, coordenadas, I-2).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -36,6 +40,81 @@ pub enum SignerRole {
     Operator,
 }
 
+impl SignerRole {
+    /// Nombre para la documentación y los esquemas.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Root => "root",
+            Self::Device => "device",
+            Self::RootOrDevice => "root_or_device",
+            Self::RootOrRegistry => "root_or_registry",
+            Self::Registry => "registry",
+            Self::Operator => "operator",
+        }
+    }
+}
+
+/// Tipo y formato de un campo del contenido.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FieldType {
+    /// 32 bytes en hexadecimal en minúsculas (llave pública o id de evento).
+    Hex32,
+    /// Entero en ±(2⁵³ − 1).
+    Int,
+    /// Entero no negativo.
+    NonNegInt,
+    /// Nivel de confianza: 1, 2 o 3.
+    Level,
+    /// Booleano.
+    Bool,
+    /// Texto en NFC con un máximo de grafemas.
+    Text(usize),
+    /// Una de las cadenas dadas.
+    Enum(&'static [&'static str]),
+    /// Código `[a-z][a-z0-9_]*` de hasta 32 bytes.
+    Code,
+    /// Identificador de contenido `b3_` más 52 caracteres base32 (RFC 4648) en minúsculas.
+    Cid,
+    /// Etiqueta de idioma BCP 47 sencilla.
+    Lang,
+    /// Cadena ASCII de 1 a N bytes.
+    Ascii(usize),
+    /// Zona: objeto `{id, mode}`.
+    Zone,
+    /// Lista de hasta N identificadores de contenido.
+    CidList(usize),
+    /// Lista de 1 a N tipos de evento sin repetir.
+    KindList(usize),
+}
+
+/// Campo del contenido de un tipo.
+#[derive(Debug, Clone, Copy)]
+pub struct Field {
+    /// Nombre.
+    pub name: &'static str,
+    /// Tipo y formato.
+    pub ty: FieldType,
+    /// Obligatorio u opcional.
+    pub required: bool,
+}
+
+const fn req(name: &'static str, ty: FieldType) -> Field {
+    Field {
+        name,
+        ty,
+        required: true,
+    }
+}
+
+const fn opt(name: &'static str, ty: FieldType) -> Field {
+    Field {
+        name,
+        ty,
+        required: false,
+    }
+}
+
 /// Descripción de un tipo conocido.
 #[derive(Debug, Clone, Copy)]
 pub struct KindSpec {
@@ -43,6 +122,10 @@ pub struct KindSpec {
     pub kind: &'static str,
     /// Quién puede firmarlo.
     pub signer: SignerRole,
+    /// Campos del contenido. No se admite ningún otro.
+    pub fields: &'static [Field],
+    /// Reglas entre campos, en palabras, para la documentación y los esquemas.
+    pub rules: &'static str,
 }
 
 impl KindSpec {
@@ -53,63 +136,132 @@ impl KindSpec {
     }
 }
 
+use FieldType as F;
+
 /// Tipos conocidos de la versión 1. Añadir uno exige ADR, `docs/06`, esquemas y vectores.
 pub const KINDS: &[KindSpec] = &[
     KindSpec {
         kind: "account.attest",
         signer: SignerRole::Registry,
+        fields: &[
+            req("account", F::Hex32),
+            req("tier", F::Enum(&["alpha", "base", "secondary"])),
+            req("level", F::Level),
+            req("epoch", F::NonNegInt),
+            req("expires_at", F::Int),
+            req("issuer", F::Hex32),
+        ],
+        rules: "expires_at > created_at; issuer es la llave que firma.",
     },
     KindSpec {
         kind: "account.presence",
         signer: SignerRole::Registry,
+        fields: &[
+            req("account", F::Hex32),
+            req("challenge", F::Ascii(64)),
+            req("passed_at", F::Int),
+        ],
+        rules: "passed_at <= created_at.",
     },
     KindSpec {
         kind: "auth.request",
         signer: SignerRole::Device,
+        fields: &[req("purpose", F::Code), req("nonce", F::Hex32)],
+        rules: "Efímero: no se guarda ni se reenvía. La ingesta exige created_at a menos de 60 s.",
     },
     KindSpec {
         kind: "account.profile",
         signer: SignerRole::RootOrDevice,
+        fields: &[
+            opt("name", F::Text(50)),
+            opt("bio", F::Text(300)),
+            opt("avatar", F::Cid),
+        ],
+        rules: "Reemplazable. avatar exige nivel 2 o superior.",
     },
     KindSpec {
         kind: "account.rotate",
         signer: SignerRole::RootOrRegistry,
+        fields: &[req("new_account", F::Hex32), req("effective_at", F::Int)],
+        rules: "effective_at >= created_at + 72 h.",
     },
     KindSpec {
         kind: "device.grant",
         signer: SignerRole::Root,
+        fields: &[
+            req("device", F::Hex32),
+            req("caps", F::KindList(32)),
+            req("expires_at", F::Int),
+            req("label", F::Text(50)),
+        ],
+        rules: "created_at < expires_at <= created_at + 90 días.",
     },
     KindSpec {
         kind: "device.revoke",
         signer: SignerRole::Root,
+        fields: &[req("device", F::Hex32)],
+        rules: "Efecto inmediato desde created_at.",
     },
     KindSpec {
         kind: "post.create",
         signer: SignerRole::Device,
+        fields: &[
+            req("text", F::Text(500)),
+            req("lang", F::Lang),
+            req("zone", F::Zone),
+            opt("media", F::CidList(4)),
+            opt("reply_to", F::Hex32),
+            opt("root", F::Hex32),
+            opt("quote", F::Hex32),
+        ],
+        rules: "Texto o imágenes; reply_to y root van juntos; imágenes exigen nivel 2 o superior.",
     },
     KindSpec {
         kind: "post.delete",
         signer: SignerRole::Device,
+        fields: &[req("target", F::Hex32)],
+        rules: "Lápida. Solo el autor.",
     },
     KindSpec {
         kind: "post.repost",
         signer: SignerRole::Device,
+        fields: &[req("target", F::Hex32)],
+        rules: "",
     },
     KindSpec {
         kind: "reaction.set",
         signer: SignerRole::Device,
+        fields: &[
+            req("target", F::Hex32),
+            req("value", F::Enum(&["like", ""])),
+        ],
+        rules: "Reemplazable por par cuenta-objetivo.",
     },
     KindSpec {
         kind: "follow.set",
         signer: SignerRole::Device,
+        fields: &[req("target_account", F::Hex32), req("value", F::Bool)],
+        rules: "Reemplazable.",
     },
     KindSpec {
         kind: "report.create",
         signer: SignerRole::Device,
+        fields: &[
+            req("target", F::Hex32),
+            req("reason", F::Code),
+            opt("note", F::Text(500)),
+        ],
+        rules: "No se propaga a otros usuarios.",
     },
     KindSpec {
         kind: "mod.action",
         signer: SignerRole::Operator,
+        fields: &[
+            req("target", F::Hex32),
+            req("action", F::Enum(&["hide", "remove", "suspend"])),
+            req("reason_code", F::Code),
+        ],
+        rules: "Público y auditable.",
     },
 ];
 
@@ -117,13 +269,6 @@ pub const KINDS: &[KindSpec] = &[
 #[must_use]
 pub fn spec(kind: &str) -> Option<&'static KindSpec> {
     KINDS.iter().find(|k| k.kind == kind)
-}
-
-/// Lectura tipada del contenido, que registra qué campos se consultaron para rechazar
-/// después los desconocidos.
-pub(crate) struct Content<'a> {
-    map: &'a BTreeMap<String, Json>,
-    seen: BTreeSet<&'static str>,
 }
 
 fn schema(field: &str, msg: &str) -> CoreError {
@@ -140,109 +285,8 @@ fn is_lower_hex(s: &str, bytes: usize) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-impl<'a> Content<'a> {
-    pub(crate) fn new(map: &'a BTreeMap<String, Json>) -> Self {
-        Self {
-            map,
-            seen: BTreeSet::new(),
-        }
-    }
-
-    fn get(&mut self, field: &'static str) -> Option<&'a Json> {
-        self.seen.insert(field);
-        self.map.get(field)
-    }
-
-    fn opt_str(&mut self, field: &'static str) -> Result<Option<&'a str>, CoreError> {
-        match self.get(field) {
-            None => Ok(None),
-            Some(v) => v
-                .as_str()
-                .map(Some)
-                .ok_or_else(|| schema(field, "debe ser una cadena")),
-        }
-    }
-
-    fn req_str(&mut self, field: &'static str) -> Result<&'a str, CoreError> {
-        self.opt_str(field)?.ok_or_else(|| schema(field, "falta"))
-    }
-
-    fn req_int(&mut self, field: &'static str) -> Result<i64, CoreError> {
-        self.get(field)
-            .ok_or_else(|| schema(field, "falta"))?
-            .as_int()
-            .ok_or_else(|| schema(field, "debe ser un entero"))
-    }
-
-    fn req_bool(&mut self, field: &'static str) -> Result<bool, CoreError> {
-        self.get(field)
-            .ok_or_else(|| schema(field, "falta"))?
-            .as_bool()
-            .ok_or_else(|| schema(field, "debe ser un booleano"))
-    }
-
-    fn req_hex(&mut self, field: &'static str, bytes: usize) -> Result<&'a str, CoreError> {
-        let s = self.req_str(field)?;
-        if is_lower_hex(s, bytes) {
-            Ok(s)
-        } else {
-            Err(schema(
-                field,
-                "hexadecimal en minúsculas de longitud exacta",
-            ))
-        }
-    }
-
-    fn opt_hex(&mut self, field: &'static str, bytes: usize) -> Result<Option<&'a str>, CoreError> {
-        match self.opt_str(field)? {
-            None => Ok(None),
-            Some(s) if is_lower_hex(s, bytes) => Ok(Some(s)),
-            Some(_) => Err(schema(
-                field,
-                "hexadecimal en minúsculas de longitud exacta",
-            )),
-        }
-    }
-
-    fn req_enum(&mut self, field: &'static str, allowed: &[&str]) -> Result<&'a str, CoreError> {
-        let s = self.req_str(field)?;
-        if allowed.contains(&s) {
-            Ok(s)
-        } else {
-            Err(schema(
-                field,
-                &format!("valor no admitido; se espera uno de {allowed:?}"),
-            ))
-        }
-    }
-
-    fn finish(self) -> Result<(), CoreError> {
-        match self.map.keys().find(|k| !self.seen.contains(k.as_str())) {
-            Some(extra) => Err(CoreError::new(
-                ErrorCode::UnknownField,
-                format!("content.{extra}"),
-            )),
-            None => Ok(()),
-        }
-    }
-}
-
-/// Texto en NFC (paso 2) y con un máximo de grafemas (paso 8).
-fn text(field: &str, s: &str, max_graphemes: usize) -> Result<(), CoreError> {
-    if !is_nfc(s) {
-        return Err(CoreError::new(
-            ErrorCode::TextNotNfc,
-            format!("content.{field}"),
-        ));
-    }
-    if s.graphemes(true).count() > max_graphemes {
-        return Err(limit(field, &format!("máximo {max_graphemes} grafemas")));
-    }
-    Ok(())
-}
-
 /// Identificador de zona: `z_` más 12 caracteres base32 de Crockford en minúsculas (`docs/07` §2).
-fn zone_id(s: &str) -> bool {
+pub(crate) fn is_zone_id(s: &str) -> bool {
     s.strip_prefix("z_").is_some_and(|rest| {
         rest.len() == 12
             && rest
@@ -251,8 +295,7 @@ fn zone_id(s: &str) -> bool {
     })
 }
 
-/// Identificador de contenido: `b3_` más BLAKE3 en base32 (RFC 4648) en minúsculas sin relleno.
-fn cid(s: &str) -> bool {
+fn is_cid(s: &str) -> bool {
     s.strip_prefix("b3_").is_some_and(|rest| {
         rest.len() == 52
             && rest
@@ -261,8 +304,7 @@ fn cid(s: &str) -> bool {
     })
 }
 
-/// Etiqueta de idioma BCP 47 sencilla: `es`, `es-CO`, `zh-Hant`.
-fn lang(s: &str) -> bool {
+fn is_lang(s: &str) -> bool {
     let mut parts = s.split('-');
     let primary_ok = parts
         .next()
@@ -272,12 +314,142 @@ fn lang(s: &str) -> bool {
         && parts.all(|p| (2..=8).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_alphanumeric()))
 }
 
-/// Código corto: `[a-z][a-z0-9_]*`, hasta 32 bytes.
-fn code(s: &str) -> bool {
+fn is_code(s: &str) -> bool {
     let mut b = s.bytes();
     s.len() <= 32
         && b.next().is_some_and(|c| c.is_ascii_lowercase())
         && b.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
+}
+
+fn check_text(name: &str, s: &str, max_graphemes: usize) -> Result<(), CoreError> {
+    if !is_nfc(s) {
+        return Err(CoreError::new(
+            ErrorCode::TextNotNfc,
+            format!("content.{name}"),
+        ));
+    }
+    if s.graphemes(true).count() > max_graphemes {
+        return Err(limit(name, &format!("máximo {max_graphemes} grafemas")));
+    }
+    Ok(())
+}
+
+/// Comprueba un campo contra su tipo: esquema (paso 2) y límite (paso 8).
+fn check_field(name: &str, ty: FieldType, value: &Json) -> Result<(), CoreError> {
+    let string = || {
+        value
+            .as_str()
+            .ok_or_else(|| schema(name, "debe ser una cadena"))
+    };
+    match ty {
+        F::Hex32 => {
+            if !is_lower_hex(string()?, 32) {
+                return Err(schema(name, "hexadecimal en minúsculas de 64 caracteres"));
+            }
+        }
+        F::Int => {
+            value
+                .as_int()
+                .ok_or_else(|| schema(name, "debe ser un entero"))?;
+        }
+        F::NonNegInt => {
+            if value
+                .as_int()
+                .ok_or_else(|| schema(name, "debe ser un entero"))?
+                < 0
+            {
+                return Err(schema(name, "no puede ser negativo"));
+            }
+        }
+        F::Level => {
+            let n = value
+                .as_int()
+                .ok_or_else(|| schema(name, "debe ser un entero"))?;
+            if !(1..=3).contains(&n) {
+                return Err(schema(name, "debe ser 1, 2 o 3"));
+            }
+        }
+        F::Bool => {
+            value
+                .as_bool()
+                .ok_or_else(|| schema(name, "debe ser un booleano"))?;
+        }
+        F::Text(max) => check_text(name, string()?, max)?,
+        F::Enum(allowed) => {
+            if !allowed.contains(&string()?) {
+                return Err(schema(name, &format!("se espera uno de {allowed:?}")));
+            }
+        }
+        F::Code => {
+            if !is_code(string()?) {
+                return Err(schema(name, "código [a-z][a-z0-9_]* de hasta 32 bytes"));
+            }
+        }
+        F::Cid => {
+            if !is_cid(string()?) {
+                return Err(schema(name, "identificador de contenido b3_ inválido"));
+            }
+        }
+        F::Lang => {
+            if !is_lang(string()?) {
+                return Err(schema(name, "etiqueta de idioma BCP 47"));
+            }
+        }
+        F::Ascii(max) => {
+            let s = string()?;
+            if s.is_empty() || s.len() > max || !s.is_ascii() {
+                return Err(schema(name, &format!("de 1 a {max} caracteres ASCII")));
+            }
+        }
+        F::Zone => {
+            let zone = value
+                .as_object()
+                .ok_or_else(|| schema(name, "debe ser un objeto {id, mode}"))?;
+            let id = zone.get("id").and_then(Json::as_str);
+            if !id.is_some_and(is_zone_id) {
+                return Err(schema("zone.id", "identificador de zona inválido"));
+            }
+            let mode = zone.get("mode").and_then(Json::as_str);
+            if !mode.is_some_and(|m| ["home", "live", "remote"].contains(&m)) {
+                return Err(schema("zone.mode", "se espera home, live o remote"));
+            }
+            if let Some(extra) = zone.keys().find(|k| *k != "id" && *k != "mode") {
+                return Err(CoreError::new(
+                    ErrorCode::UnknownField,
+                    format!("content.zone.{extra}"),
+                ));
+            }
+        }
+        F::CidList(max) => {
+            let list = value
+                .as_array()
+                .ok_or_else(|| schema(name, "debe ser una lista"))?;
+            if list.iter().any(|m| !m.as_str().is_some_and(is_cid)) {
+                return Err(schema(name, "identificadores de contenido b3_"));
+            }
+            if list.len() > max {
+                return Err(limit(name, &format!("máximo {max}")));
+            }
+        }
+        F::KindList(max) => {
+            let list = value
+                .as_array()
+                .ok_or_else(|| schema(name, "debe ser una lista de tipos"))?;
+            let mut unique = BTreeSet::new();
+            for item in list {
+                let k = item
+                    .as_str()
+                    .ok_or_else(|| schema(name, "debe ser una lista de tipos"))?;
+                if crate::event::check_kind(k).is_err() || !unique.insert(k) {
+                    return Err(schema(name, "tipos válidos y sin repetir"));
+                }
+            }
+            if list.is_empty() || list.len() > max {
+                return Err(limit(name, &format!("de 1 a {max} tipos")));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Resumen del contenido que necesita la validación de nivel (paso 6).
@@ -287,176 +459,87 @@ pub(crate) struct ContentFacts {
     pub has_media: bool,
 }
 
-/// Aplica el esquema y los límites del tipo. Devuelve los datos que necesita el paso 6.
-pub(crate) fn check_content(
+/// Reglas que relacionan varios campos o la envoltura (las describe `KindSpec::rules`).
+fn check_rules(
     kind: &str,
     created_at: i64,
     signer_hex: &str,
-    content: &BTreeMap<String, Json>,
+    c: &BTreeMap<String, Json>,
 ) -> Result<ContentFacts, CoreError> {
-    let mut c = Content::new(content);
+    let int = |name: &str| c.get(name).and_then(Json::as_int).unwrap_or_default();
+    let present = |name: &str| c.contains_key(name);
     let mut facts = ContentFacts::default();
     match kind {
         "account.attest" => {
-            c.req_hex("account", 32)?;
-            c.req_enum("tier", &["alpha", "base", "secondary"])?;
-            let level = c.req_int("level")?;
-            if !(1..=3).contains(&level) {
-                return Err(schema("level", "debe ser 1, 2 o 3"));
-            }
-            if c.req_int("epoch")? < 0 {
-                return Err(schema("epoch", "no puede ser negativo"));
-            }
-            if c.req_int("expires_at")? <= created_at {
+            if int("expires_at") <= created_at {
                 return Err(schema("expires_at", "debe ser posterior a created_at"));
             }
-            if c.req_hex("issuer", 32)? != signer_hex {
+            if c.get("issuer").and_then(Json::as_str) != Some(signer_hex) {
                 return Err(schema("issuer", "debe ser la llave que firma"));
             }
         }
-        "account.presence" => {
-            c.req_hex("account", 32)?;
-            let challenge = c.req_str("challenge")?;
-            if challenge.is_empty() || challenge.len() > 64 || !challenge.is_ascii() {
-                return Err(schema("challenge", "de 1 a 64 caracteres ASCII"));
-            }
-            if c.req_int("passed_at")? > created_at {
-                return Err(schema("passed_at", "no puede ser posterior a created_at"));
-            }
+        "account.presence" if int("passed_at") > created_at => {
+            return Err(schema("passed_at", "no puede ser posterior a created_at"));
         }
-        "auth.request" => {
-            if !code(c.req_str("purpose")?) {
-                return Err(schema(
-                    "purpose",
-                    "código [a-z][a-z0-9_]* de hasta 32 bytes",
-                ));
-            }
-            c.req_hex("nonce", 32)?;
-        }
-        "account.profile" => {
-            if let Some(name) = c.opt_str("name")? {
-                text("name", name, 50)?;
-            }
-            if let Some(bio) = c.opt_str("bio")? {
-                text("bio", bio, 300)?;
-            }
-            if let Some(avatar) = c.opt_str("avatar")? {
-                if !cid(avatar) {
-                    return Err(schema("avatar", "identificador de contenido b3_ inválido"));
-                }
-                facts.has_media = true;
-            }
-        }
-        "account.rotate" => {
-            c.req_hex("new_account", 32)?;
-            if c.req_int("effective_at")? < created_at.saturating_add(ROTATE_DELAY) {
-                return Err(limit("effective_at", "el retraso mínimo es de 72 horas"));
-            }
+        "account.profile" => facts.has_media = present("avatar"),
+        "account.rotate" if int("effective_at") < created_at.saturating_add(ROTATE_DELAY) => {
+            return Err(limit("effective_at", "el retraso mínimo es de 72 horas"));
         }
         "device.grant" => {
-            c.req_hex("device", 32)?;
-            let caps = c
-                .get("caps")
-                .and_then(Json::as_array)
-                .ok_or_else(|| schema("caps", "debe ser una lista de tipos"))?;
-            let mut unique = BTreeSet::new();
-            for cap in caps {
-                let cap = cap
-                    .as_str()
-                    .ok_or_else(|| schema("caps", "debe ser una lista de tipos"))?;
-                if crate::event::check_kind(cap).is_err() || !unique.insert(cap) {
-                    return Err(schema("caps", "tipos válidos y sin repetir"));
-                }
-            }
-            if caps.is_empty() || caps.len() > 32 {
-                return Err(limit("caps", "de 1 a 32 tipos"));
-            }
-            let expires_at = c.req_int("expires_at")?;
+            let expires_at = int("expires_at");
             if expires_at <= created_at {
                 return Err(schema("expires_at", "debe ser posterior a created_at"));
             }
             if expires_at > created_at.saturating_add(MAX_GRANT_DAYS * DAY) {
                 return Err(limit("expires_at", "caducidad máxima de 90 días"));
             }
-            text("label", c.req_str("label")?, 50)?;
-        }
-        "device.revoke" => {
-            c.req_hex("device", 32)?;
         }
         "post.create" => {
-            let body = c.req_str("text")?;
-            text("text", body, 500)?;
-            if !lang(c.req_str("lang")?) {
-                return Err(schema("lang", "etiqueta de idioma BCP 47"));
-            }
-            let zone = c
-                .get("zone")
-                .and_then(Json::as_object)
-                .ok_or_else(|| schema("zone", "debe ser un objeto {id, mode}"))?;
-            let mut z = Content::new(zone);
-            if !zone_id(z.req_str("id")?) {
-                return Err(schema("zone.id", "identificador de zona inválido"));
-            }
-            z.req_enum("mode", &["home", "live", "remote"])?;
-            z.finish()?;
-            if let Some(media) = c.get("media") {
-                let list = media
-                    .as_array()
-                    .ok_or_else(|| schema("media", "debe ser una lista"))?;
-                if list.iter().any(|m| !m.as_str().is_some_and(cid)) {
-                    return Err(schema("media", "identificadores de contenido b3_"));
-                }
-                if list.len() > 4 {
-                    return Err(limit("media", "máximo 4"));
-                }
-                facts.has_media = !list.is_empty();
-            }
-            if body.is_empty() && !facts.has_media {
+            facts.has_media = c
+                .get("media")
+                .and_then(Json::as_array)
+                .is_some_and(|m| !m.is_empty());
+            if c.get("text").and_then(Json::as_str) == Some("") && !facts.has_media {
                 return Err(schema(
                     "text",
                     "una publicación sin imágenes necesita texto",
                 ));
             }
-            let reply_to = c.opt_hex("reply_to", 32)?;
-            let root = c.opt_hex("root", 32)?;
-            if reply_to.is_some() != root.is_some() {
+            if present("reply_to") != present("root") {
                 return Err(schema("reply_to", "reply_to y root van juntos"));
             }
-            c.opt_hex("quote", 32)?;
         }
-        "post.delete" | "post.repost" => {
-            c.req_hex("target", 32)?;
-        }
-        "reaction.set" => {
-            c.req_hex("target", 32)?;
-            c.req_enum("value", &["like", ""])?;
-        }
-        "follow.set" => {
-            c.req_hex("target_account", 32)?;
-            c.req_bool("value")?;
-        }
-        "report.create" => {
-            c.req_hex("target", 32)?;
-            if !code(c.req_str("reason")?) {
-                return Err(schema("reason", "código [a-z][a-z0-9_]* de hasta 32 bytes"));
-            }
-            if let Some(note) = c.opt_str("note")? {
-                text("note", note, 500)?;
-            }
-        }
-        "mod.action" => {
-            c.req_hex("target", 32)?;
-            c.req_enum("action", &["hide", "remove", "suspend"])?;
-            if !code(c.req_str("reason_code")?) {
-                return Err(schema(
-                    "reason_code",
-                    "código [a-z][a-z0-9_]* de hasta 32 bytes",
-                ));
-            }
-        }
-        // Un tipo desconocido no tiene esquema propio (`docs/06` §4).
-        _ => return Ok(facts),
+        _ => {}
     }
-    c.finish()?;
     Ok(facts)
+}
+
+/// Aplica el esquema y los límites del tipo. Devuelve los datos que necesita el paso 6.
+/// Un tipo desconocido no tiene esquema propio (`docs/06` §4).
+pub(crate) fn check_content(
+    kind: &str,
+    created_at: i64,
+    signer_hex: &str,
+    content: &BTreeMap<String, Json>,
+) -> Result<ContentFacts, CoreError> {
+    let Some(spec) = spec(kind) else {
+        return Ok(ContentFacts::default());
+    };
+    for field in spec.fields {
+        match content.get(field.name) {
+            Some(value) => check_field(field.name, field.ty, value)?,
+            None if field.required => return Err(schema(field.name, "falta")),
+            None => {}
+        }
+    }
+    if let Some(extra) = content
+        .keys()
+        .find(|k| !spec.fields.iter().any(|f| f.name == k.as_str()))
+    {
+        return Err(CoreError::new(
+            ErrorCode::UnknownField,
+            format!("content.{extra}"),
+        ));
+    }
+    check_rules(kind, created_at, signer_hex, content)
 }

@@ -92,6 +92,7 @@ Reglas:
 - **Quién firma (paso 5).** «Raíz» exige `signer == account`; «Dispositivo» exige un dispositivo delegado distinto de la raíz; «Registro» y «Operador» exigen `signer == account` y una llave publicada del registro o de un operador, y no necesitan atestación de cuenta. `account.rotate` firmado por el registro es la rotación de recuperación. Un tipo desconocido lo puede firmar la raíz o un dispositivo cuya delegación lo cubra. Errores: `E_SIGNER_ROLE`, `E_DELEGATION_MISSING`, `E_DELEGATION_REVOKED` (evento con `created_at` igual o posterior a la revocación), `E_DELEGATION_EXPIRED`, `E_DELEGATION_SCOPE`.
 - **Atestación y nivel (paso 6).** `E_ATTESTATION_MISSING` si no hay atestación vigente en `created_at`; `E_LEVEL_INSUFFICIENT` si el nivel no alcanza para el contenido (nivel 1: sin imágenes ni avatar, `05` §4).
 - Los vectores dorados de `spec/vectors/validation.json` incluyen un caso por cada regla de rechazo.
+- Los esquemas JSON de `spec/schemas/` se generan desde la misma tabla que usa la validación (`pnpm spec:gen`); lo que JSON Schema no puede expresar (grafemas, NFC, reglas entre campos) va en las claves `x-max-graphemes`, `x-nfc` y `x-rules`.
 - No hay edición en la versión 1. Corregir es borrar y volver a publicar.
 - Un evento de tipo desconocido se guarda y se reenvía si pasa la validación universal, pero no se proyecta.
 - Añadir un tipo o un campo exige ADR, actualizar este documento, los esquemas en `spec/` y los vectores dorados.

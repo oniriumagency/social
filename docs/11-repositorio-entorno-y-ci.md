@@ -107,7 +107,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm test:vectors` | Vectores dorados en nativo, en WASM sobre Node y en WASM dentro de Chromium (Playwright). |
 | `pnpm test:e2e` | Playwright. |
 | `pnpm db:migrate` | Aplica migraciones. |
-| `pnpm spec:gen` | Regenera esquemas y OpenAPI. |
+| `pnpm spec:gen` | Regenera `spec/schemas/` (esquemas JSON de la envoltura y de cada tipo, desde la tabla de `social-core`). La OpenAPI se añade con la pasarela en F1. `pnpm spec:check` comprueba que no hay diferencias y forma parte de `pnpm check`. |
 | `pnpm vectors:gen` | Regenera `spec/vectors/` desde `social-core`. Cambiar un vector existente es un cambio de protocolo y exige ADR. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
 | `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
