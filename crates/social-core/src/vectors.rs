@@ -14,6 +14,8 @@ use social_crypto::{SecretKey32, SigningKey};
 
 use crate::{CoreError, ErrorCode, Event, Json, Tag, UnsignedEvent};
 
+pub use crate::vectors_validation::{MemoryContext, generate_validation_suite};
+
 /// Resultado de ejecutar un archivo de vectores.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SuiteReport {
@@ -416,6 +418,10 @@ pub fn run_suite(text: &str) -> SuiteReport {
             return report;
         }
     };
+    if suite.get("suite").and_then(Json::as_str) == Some("validation") {
+        crate::vectors_validation::run(&suite, &mut report);
+        return report;
+    }
     let list = |name: &str| {
         suite
             .get(name)

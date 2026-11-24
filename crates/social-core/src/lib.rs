@@ -14,10 +14,16 @@ mod error;
 mod event;
 mod hexfmt;
 pub mod json;
+pub mod kinds;
+mod validate;
 pub mod vectors;
+mod vectors_validation;
 
 pub use error::{CoreError, ErrorCode};
 pub use event::{
     ENVELOPE_FIELDS, Event, MAX_EVENT_BYTES, MAX_TAGS, PROTOCOL_VERSION, Tag, UnsignedEvent,
 };
 pub use json::Json;
+pub use validate::{
+    Attestation, DeviceGrant, MIN_LEVEL_MEDIA, ValidationContext, validate_event, validate_parsed,
+};

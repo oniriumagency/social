@@ -4,7 +4,12 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use social_core::CoreError;
+use social_core::vectors::{generate_envelope_suite, generate_validation_suite};
+
 const USAGE: &str = "uso: cargo run -p xtask -- <subcomando>\n\nsubcomandos:\n  vectors   regenera spec/vectors/ (cambio de protocolo: exige ADR)\n  help      muestra esta ayuda\n";
+
+type Generator = fn() -> Result<String, CoreError>;
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -13,22 +18,25 @@ fn repo_root() -> PathBuf {
 }
 
 fn vectors() -> ExitCode {
-    let suite = match social_core::vectors::generate_envelope_suite() {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("xtask vectors: {e}");
+    let suites: [(&str, Generator); 2] = [
+        ("envelope.json", generate_envelope_suite),
+        ("validation.json", generate_validation_suite),
+    ];
+    for (file, generate) in suites {
+        let suite = match generate() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("xtask vectors: {file}: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
+        let path = repo_root().join("spec").join("vectors").join(file);
+        if let Err(e) = std::fs::write(&path, suite) {
+            eprintln!("xtask vectors: no se pudo escribir {}: {e}", path.display());
             return ExitCode::FAILURE;
         }
-    };
-    let path = repo_root()
-        .join("spec")
-        .join("vectors")
-        .join("envelope.json");
-    if let Err(e) = std::fs::write(&path, suite) {
-        eprintln!("xtask vectors: no se pudo escribir {}: {e}", path.display());
-        return ExitCode::FAILURE;
+        eprintln!("xtask vectors: escrito {}", path.display());
     }
-    eprintln!("xtask vectors: escrito {}", path.display());
     ExitCode::SUCCESS
 }
 

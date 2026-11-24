@@ -28,7 +28,7 @@
 | F0-T04 | Entorno local | en revisión | Claude Code | `tarea/F0-T04-entorno-local` | 2026-11-24 |
 | F0-T05 | `social-crypto` | en revisión | Claude Code | `tarea/F0-T05-social-crypto` | 2026-11-24 |
 | F0-T06 | `social-core`: envoltura de evento | en revisión | Claude Code | `tarea/F0-T06-envoltura-evento` | 2026-11-24 |
-| F0-T07 | `social-core`: tipos y validación | pendiente | | | |
+| F0-T07 | `social-core`: tipos y validación | en revisión | Claude Code | `tarea/F0-T07-tipos-y-validacion` | 2026-11-24 |
 | F0-T08 | Núcleo en WASM | pendiente | | | |
 | F0-T09 | Esquemas y deriva | pendiente | | | |
 | F0-T10 | Fuzzing | pendiente | | | |

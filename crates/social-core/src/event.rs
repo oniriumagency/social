@@ -365,7 +365,7 @@ fn check_created_at(created_at: i64) -> Result<(), CoreError> {
 }
 
 /// `kind`: segmentos en minúsculas ASCII separados por puntos, como `post.create`.
-fn check_kind(kind: &str) -> Result<(), CoreError> {
+pub(crate) fn check_kind(kind: &str) -> Result<(), CoreError> {
     let segment_ok = |s: &str| {
         let mut chars = s.chars();
         chars.next().is_some_and(|c| c.is_ascii_lowercase())
