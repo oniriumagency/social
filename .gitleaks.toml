@@ -1,0 +1,11 @@
+# Configuración del escáner de secretos (I-10).
+# Usa las reglas por defecto de gitleaks. Las llaves de los vectores dorados son
+# públicas y solo de prueba (docs/14 §3): se excluyen por ruta, no por regla.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Material de prueba público"
+paths = [
+  '''^spec/vectors/''',
+]

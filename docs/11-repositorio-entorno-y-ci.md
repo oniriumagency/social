@@ -12,7 +12,8 @@ El desarrollo principal ocurre en **Windows**. Todo debe funcionar igual en Wind
 | Node.js LTS y pnpm (versión fijada en `package.json`) | Web e interfaz |
 | Docker Desktop | PostgreSQL y MinIO en local |
 | Requisitos de Tauri 2 para el sistema (WebView2 y herramientas de compilación de C++ en Windows) | Escritorio |
-| `sqlx-cli`, `cargo-deny`, `cargo-audit`, `cargo-nextest` | Base de datos y calidad |
+| `sqlx-cli`, `cargo-deny` | Base de datos y calidad (`pnpm bootstrap` instala `cargo-deny`) |
+| `gitleaks` (opcional en local) | Escáner de secretos; CI lo ejecuta siempre |
 
 Limitaciones a tener presentes:
 
@@ -108,6 +109,9 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm db:migrate` | Aplica migraciones. |
 | `pnpm spec:gen` | Regenera esquemas y OpenAPI. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
+| `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
+| `pnpm check:supply` | `cargo-deny` (licencias, orígenes, crates prohibidos, avisos de RustSec) y `pnpm audit`. |
+| `pnpm check:secrets` | gitleaks sobre todo el historial. En local se omite con un aviso si gitleaks no está instalado; en CI es obligatorio. |
 | `pnpm check` | **Todo lo anterior que debe pasar antes de un PR:** fmt, lint, typecheck, test, vectors, spec sin cambios, reglas, dependencias y secretos. |
 
 Si una orden no existe todavía, la tarea que la necesita la crea. No se inventan órdenes alternativas.
@@ -129,12 +133,12 @@ GitHub Actions. Matriz en `ubuntu-latest` y `windows-latest`; `macos-latest` par
 
 | Trabajo | Contenido |
 | :-- | :-- |
-| `rust` | fmt, clippy, pruebas con nextest, vectores dorados |
+| `rust` | fmt, clippy, pruebas con `cargo test`, vectores dorados (`pnpm check:rust`) |
 | `wasm` | Compilación del núcleo a WASM y vectores en Node y en navegador |
 | `ts` | ESLint, tsc, Vitest |
 | `e2e` | Playwright contra pasarela y base de datos efímeras |
 | `spec` | Regenerar esquemas y OpenAPI; falla si hay diferencias |
-| `supply-chain` | `cargo-deny`, `cargo-audit`, auditoría de pnpm |
+| `supply-chain` | `cargo-deny` (incluye los avisos de RustSec que revisa `cargo-audit`) y auditoría de pnpm |
 | `secrets` | Escáner de secretos sobre el diff y el historial |
 | `rules` | `pnpm check:rules`; límites de arquitectura |
 | `privacy` | Prueba de registros limpios y prueba de tráfico sin coordenadas |

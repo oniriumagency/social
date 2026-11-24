@@ -12,7 +12,7 @@
 
 | Nivel | Herramienta | Qué cubre | Dónde corre |
 | :-- | :-- | :-- | :-- |
-| Unitarias Rust | `cargo nextest` | Lógica pura | Local y CI |
+| Unitarias Rust | `cargo test` (se puede pasar a `cargo nextest` cuando el tiempo de pruebas lo pida) | Lógica pura | Local y CI |
 | Propiedades | `proptest` | Invariantes sobre entradas generadas | Local y CI |
 | Vectores dorados | Ejecutor propio | Compatibilidad de protocolo entre nativo, WASM en Node y WASM en navegador | Local y CI |
 | Fuzzing | `cargo-fuzz` | Análisis de eventos, mensajes de red, paquetes de zona | CI nocturno |
