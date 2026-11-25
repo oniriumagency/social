@@ -105,7 +105,7 @@ Usa solo las órdenes del `package.json` raíz. Si falta una, la crea la tarea q
 | Orden | Uso |
 | :-- | :-- |
 | `pnpm bootstrap` | Preparar el repositorio |
-| `pnpm dev:infra` | PostgreSQL y MinIO locales |
+| `pnpm dev:infra` | PostgreSQL y SeaweedFS (almacenamiento compatible con S3) locales |
 | `pnpm dev` / `pnpm dev:desktop` | Desarrollo |
 | `pnpm fmt` / `pnpm lint` / `pnpm typecheck` | Formato y análisis |
 | `pnpm test` / `pnpm test:vectors` / `pnpm test:e2e` | Pruebas |

@@ -6,7 +6,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | :-- | :-- | :-- | :-- | :-- |
 | D-01 | País y ciudad del piloto | Colombia. Ciudad: Bogotá | S3 (la ciudad) | **Decidida el 2026-11-24** (país y ciudad) |
 | D-02 | Cómo se prueba la humanidad | Varios métodos con niveles de confianza | — | **Decidida el 2026-11-23** |
-| D-03 | Modelo económico de los puntos | A: descuento financiado por el comercio | F4-T00 | Pendiente |
+| D-03 | Modelo económico de los puntos | A: descuento financiado por el comercio | F4-T00 | **Decidida el 2026-11-24** (A; se ratifica con el dictamen de F4-T00) |
 | D-04 | Licencias | AGPL-3.0 para servicios, nodo y apps; Apache-2.0 para núcleo, especificación y SDK | F0-T03 | **Decidida el 2026-11-24** |
 | D-05 | Edad mínima | 18 años | F2 | Pendiente |
 | D-06 | Aceptar que la sanción máxima es temporal | Sí | F2 | Pendiente |
@@ -21,7 +21,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-15 | Privilegios por nivel; en particular, si el nivel 2 puede ganar puntos | Solo nivel 3 gana puntos | F2-T10, F4 | Pendiente |
 | D-16 | Política de retos: frecuencia, plazos y efecto en el puntaje | Valores de `05` §6.2 | F2-T24 | Pendiente de calibrar |
 | D-17 | Exigir que los eventos viajen en su forma canónica exacta | Forma canónica obligatoria | — | **Decidida el 2026-11-24** |
-| D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente |
+| D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente; propuesta del responsable el 2026-11-24 |
 
 ---
 
@@ -64,9 +64,15 @@ La tabla de `05` §4 es el punto de partida. La pregunta de fondo es si el nivel
 
 **En Colombia esta decisión pesa más**, porque el nivel 3 depende del pasaporte y la cédula solo llega al nivel 2. Si S1 muestra que pocos adultos tienen pasaporte con chip, quedarán pocos nodos remunerados. Recomendación: empezar solo con nivel 3, y revisar con la cifra de S1 y con los datos de los puntos de prueba de F3.
 
-## D-03. Modelo económico de los puntos
+## D-03. Modelo económico de los puntos — DECIDIDA
 
-Ver `09` §7. El modelo A no mueve dinero del proyecto y tiene poco riesgo regulatorio. El modelo B exige fondos y posiblemente licencia. La decisión final se toma con el dictamen legal de F4-T00.
+**Decisión del responsable (2026-11-24):** modelo **A**, descuento financiado por el comercio. Cuando haya aliados comerciales, el canje en comercios será la ruta principal.
+
+**Mientras no haya aliados:** la app dice que el nodo gana puntos y muestra el saldo, pero no anuncia al público en qué se pueden canjear. Como mucho se ofrecen ventajas digitales dentro de la propia app (por ejemplo, un emblema) que no le cuesten dinero al proyecto. Nada de esto adelanta fases: los puntos siguen sujetos a las compuertas G2, G3 y G4 y solo los gana el nivel 3 (I-14), y verificarse nunca da ventajas.
+
+**Pendiente:** el dictamen legal de F4-T00 ratifica el modelo antes de abrir el canje. El modelo B (el proyecto paga al comercio) solo se reabre con dictamen favorable y ADR.
+
+Ver `09` §7. El modelo A no mueve dinero del proyecto y tiene poco riesgo regulatorio. El modelo B exige fondos y posiblemente licencia.
 
 ## D-04. Licencias — DECIDIDA
 
@@ -115,6 +121,18 @@ Los valores de `05` §6.2 (frecuencias de 7, 30 y 120 días; plazo de 72 horas; 
 
 Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` igual o posterior a ella, y `created_at` lo pone quien firma. El único freno a un evento fechado antes de la revocación es el reloj de la ingesta (paso 7), que nodos, indexadores y clientes no aplican. Hay que decidir antes de F3, cuando los nodos reenvían eventos sin pasar por la pasarela, cómo se trata ese caso (riesgo anotado en `04` §6).
 
+**Ejemplo.** A alguien le roban el teléfono el lunes y revoca ese dispositivo el jueves. El viernes, quien tiene el teléfono firma una publicación y le pone fecha del martes. Como el martes la delegación seguía vigente, un nodo que reciba ese evento lo acepta. La pasarela lo rechaza por el reloj de la ingesta, pero un nodo que lo reenvía en F3 no tiene ese freno.
+
+**Propuesta del responsable (2026-11-24).** Cuando la persona reporta el robo, indica desde cuándo perdió el teléfono (el lunes, en el ejemplo). La app le muestra toda la actividad firmada por ese dispositivo desde esa fecha hasta el reporte, y le deja decidir: borrar todo, borrar algunas publicaciones o conservarlas.
+
+**Lo que esa pantalla resuelve y lo que no.** Resuelve lo que ya se publicó entre el lunes y el jueves: la persona lo ve y lo borra con `post.delete`. No resuelve el ejemplo del viernes: un evento firmado después del reporte con fecha anterior aparece cuando la persona ya revisó su actividad, y sigue siendo válido para los nodos. Para cerrarlo hace falta, además, una regla del protocolo. Opciones:
+
+- **A. Solo la pantalla de revisión.** Simple, pero deja abierto el caso del viernes.
+- **B. Revocación con fecha «desde».** `device.revoke` lleva la fecha que la persona indica al reportar (el lunes). Todo evento de ese dispositivo con `created_at` igual o posterior a esa fecha deja de ser válido, en la pasarela y en cualquier nodo, porque la regla solo depende de datos firmados. Lo que la persona quiera conservar de ese intervalo, la app lo vuelve a publicar desde su teléfono nuevo, marcado como «publicado originalmente el …». Cierra el caso del viernes; el costo es que lo conservado pierde sus respuestas y reacciones, porque cambia su identificador.
+- **C. Ventana de llegada.** Se acepta un evento fechado antes de la revocación solo si llega pocas horas después de ella. Sirve en la pasarela, pero un nodo no sabe cuándo llegó un evento a otro nodo, así que no se puede aplicar igual en toda la red.
+
+**Recomendación:** la pantalla de revisión del responsable más la opción B. La pantalla es la forma de decidir qué conservar y la fecha «desde» hace que esa decisión valga en toda la red. Cambia el protocolo (`06` §4, ADR, esquemas y vectores), así que se implementa con su tarea antes de F3, no ahora.
+
 ---
 
 ## Registro de decisiones tomadas
@@ -127,4 +145,5 @@ Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` ig
 | 2026-11-24 | D-01 | El piloto es Colombia. Ciudad por defecto: Bogotá, pendiente de confirmar. Verificarse nunca se premia. | `00`, `01`, `04`, `05` §5.1, `07` §2.1, `09`, `10` §6, `12`, `14`, `16`, ADR-019, `CLAUDE.md`, `ANTIGRAVITY.md` |
 | 2026-11-24 | D-01 | Ciudad piloto confirmada: Bogotá. | `01`, `12`, `15`, ADR-019, `PROGRESO.md` |
 | 2026-11-24 | D-04 | AGPL-3.0-only para servicios, nodo y apps; Apache-2.0 para núcleo, especificación, SDK y herramientas. | `03`, `15`, ADR-011, `LICENSE`, `README.md`, `PROGRESO.md` |
+| 2026-11-24 | D-03 | Modelo A: descuento financiado por el comercio. Sin aliados, solo se muestra el saldo y ventajas digitales sin costo dentro de la app; se ratifica con el dictamen de F4-T00. | `09` §7, `15`, `PROGRESO.md` |
 | 2026-11-24 | D-17 | Los eventos solo son válidos en su forma canónica JCS exacta (`E_JSON_NOT_CANONICAL`). | `06` §1 y §3, `15`, ADR-020, `spec/vectors/envelope.json`, `PROGRESO.md` |
