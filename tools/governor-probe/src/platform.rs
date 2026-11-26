@@ -1,9 +1,12 @@
 //! Lectura de cada señal en cada sistema operativo (`docs/08` §2.1).
 //!
 //! Cada lectura devuelve `Ok(None)` cuando el sistema no ofrece la señal y `Err` cuando
-//! la ofrece pero falló. Los errores se resumen sin rutas, nombres ni direcciones.
+//! la ofrece pero falló. Un error se reduce a un código cerrado (tipo de error de E/S,
+//! variante, nombre del error de D-Bus o HRESULT): nunca el texto de la biblioteca o del
+//! sistema, que podría llevar rutas o nombres, porque el informe se comparte.
 
 use std::fmt;
+use std::io;
 
 use starship_battery::State;
 use sysinfo::{Components, Disks, System};
@@ -31,10 +34,10 @@ pub struct Probe {
 impl Probe {
     pub fn new() -> Self {
         Self {
-            system: System::new().map_err(|e| format!("{e:?}")),
-            disks: Disks::new_with_refreshed_list().map_err(|e| format!("{e:?}")),
-            components: Components::new_with_refreshed_list().map_err(|e| format!("{e:?}")),
-            battery: starship_battery::Manager::new().map_err(|e| e.to_string()),
+            system: System::new().map_err(|e| variant(&e)),
+            disks: Disks::new_with_refreshed_list().map_err(|e| variant(&e)),
+            components: Components::new_with_refreshed_list().map_err(|e| variant(&e)),
+            battery: starship_battery::Manager::new().map_err(|e| battery_code(&e)),
             #[cfg(target_os = "linux")]
             bus: zbus::block_on(zbus::Connection::system()).ok(),
         }
@@ -43,11 +46,11 @@ impl Probe {
     /// Estado de la batería y porcentaje. `None` en un equipo sin batería.
     pub fn power(&mut self) -> Result<Option<PowerReading>, String> {
         let manager = self.battery.as_ref().map_err(Clone::clone)?;
-        let mut batteries = manager.batteries().map_err(|e| e.to_string())?;
+        let mut batteries = manager.batteries().map_err(|e| battery_code(&e))?;
         let Some(battery) = batteries.next() else {
             return Ok(None);
         };
-        let battery = battery.map_err(|e| e.to_string())?;
+        let battery = battery.map_err(|e| battery_code(&e))?;
         let state = match battery.state() {
             State::Charging => "cargando",
             State::Discharging => "descargando (sin corriente)",
@@ -104,7 +107,7 @@ impl Probe {
     pub fn disk_free(&mut self) -> Result<Option<String>, String> {
         let disks = self.disks.as_mut().map_err(|e| e.clone())?;
         disks.refresh(true);
-        let here = std::env::current_dir().map_err(|e| e.kind().to_string())?;
+        let here = std::env::current_dir().map_err(|e| format!("io:{:?}", e.kind()))?;
         let disk = disks
             .iter()
             .filter(|d| here.starts_with(d.mount_point()))
@@ -145,14 +148,10 @@ fn metered_impl(_: &mut Probe) -> Result<Option<String>, String> {
     let Ok(profile) = NetworkInformation::GetInternetConnectionProfile() else {
         return Ok(None);
     };
-    let cost = profile
-        .GetConnectionCost()
-        .map_err(|e| e.message().to_string())?;
-    let kind = cost
-        .NetworkCostType()
-        .map_err(|e| e.message().to_string())?;
-    let roaming = cost.Roaming().map_err(|e| e.message().to_string())?;
-    let over = cost.OverDataLimit().map_err(|e| e.message().to_string())?;
+    let cost = profile.GetConnectionCost().map_err(|e| hresult(&e))?;
+    let kind = cost.NetworkCostType().map_err(|e| hresult(&e))?;
+    let roaming = cost.Roaming().map_err(|e| hresult(&e))?;
+    let over = cost.OverDataLimit().map_err(|e| hresult(&e))?;
     let label = if kind == NetworkCostType::Unrestricted && !roaming && !over {
         "no medida"
     } else if kind == NetworkCostType::Unknown {
@@ -168,7 +167,7 @@ fn metered_impl(probe: &mut Probe) -> Result<Option<String>, String> {
     let Some(bus) = &probe.bus else {
         return Ok(None);
     };
-    let value: u32 = zbus::block_on(async {
+    let value = zbus::block_on(async {
         let proxy = zbus::Proxy::new(
             bus,
             "org.freedesktop.NetworkManager",
@@ -177,8 +176,12 @@ fn metered_impl(probe: &mut Probe) -> Result<Option<String>, String> {
         )
         .await?;
         proxy.get_property::<u32>("Metered").await
-    })
-    .map_err(|e| e.to_string())?;
+    });
+    let value = match value {
+        Ok(v) => v,
+        Err(e) if dbus_absent(&e) => return Ok(None),
+        Err(e) => return Err(dbus_code(&e)),
+    };
     // NMMetered: 0 desconocido, 1 sí, 2 no, 3 probablemente sí, 4 probablemente no.
     let label = match value {
         1 | 3 => "medida",
@@ -221,11 +224,26 @@ fn thermal_impl() -> Result<Option<String>, String> {
 
 // --- Actividad del usuario ----------------------------------------------------------------
 
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(windows)]
 fn idle_impl(_: &mut Probe) -> Result<Option<u64>, String> {
     user_idle::UserIdle::get_time()
         .map(|t| Some(t.as_seconds()))
-        .map_err(|e| e.to_string())
+        .map_err(|_| "user-idle".to_owned())
+}
+
+#[cfg(target_os = "macos")]
+fn idle_impl(_: &mut Probe) -> Result<Option<u64>, String> {
+    use objc2_core_graphics::{CGEventSource, CGEventSourceStateID, CGEventType};
+    // kCGAnyInputEventType: cualquier evento de teclado, ratón o trackpad.
+    let secs = CGEventSource::seconds_since_last_event_type(
+        CGEventSourceStateID::CombinedSessionState,
+        CGEventType(u32::MAX),
+    );
+    if secs.is_finite() && secs >= 0.0 {
+        Ok(Some(secs as u64))
+    } else {
+        Err("CGEventSource".to_owned())
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -235,7 +253,7 @@ fn idle_impl(probe: &mut Probe) -> Result<Option<u64>, String> {
     let Some(bus) = &probe.bus else {
         return Ok(None);
     };
-    let (idle, since_us) = zbus::block_on(async {
+    let read = zbus::block_on(async {
         let proxy = zbus::Proxy::new(
             bus,
             "org.freedesktop.login1",
@@ -246,8 +264,12 @@ fn idle_impl(probe: &mut Probe) -> Result<Option<u64>, String> {
         let idle = proxy.get_property::<bool>("IdleHint").await?;
         let since = proxy.get_property::<u64>("IdleSinceHint").await?;
         Ok::<_, zbus::Error>((idle, since))
-    })
-    .map_err(|e| e.to_string())?;
+    });
+    let (idle, since_us) = match read {
+        Ok(v) => v,
+        Err(e) if dbus_absent(&e) => return Ok(None),
+        Err(e) => return Err(dbus_code(&e)),
+    };
     if !idle {
         return Ok(Some(0));
     }
@@ -262,4 +284,53 @@ fn idle_impl(probe: &mut Probe) -> Result<Option<u64>, String> {
 #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
 fn idle_impl(_: &mut Probe) -> Result<Option<u64>, String> {
     Ok(None)
+}
+
+// --- Códigos de error ---------------------------------------------------------------------
+
+/// Nombre de la variante de un error, sin sus datos: lo que precede a `(`, `{` o un espacio.
+fn variant<E: fmt::Debug>(e: &E) -> String {
+    let text = format!("{e:?}");
+    text.split(['(', '{', ' '])
+        .next()
+        .unwrap_or("error")
+        .to_owned()
+}
+
+fn battery_code(e: &starship_battery::Error) -> String {
+    std::error::Error::source(e)
+        .and_then(|s| s.downcast_ref::<io::Error>())
+        .map_or_else(|| "battery".to_owned(), |io| format!("io:{:?}", io.kind()))
+}
+
+#[cfg(windows)]
+fn hresult(e: &windows::core::Error) -> String {
+    format!("HRESULT 0x{:08X}", e.code().0)
+}
+
+/// Nombre del error de D-Bus si lo hay; si no, la variante del error de zbus.
+#[cfg(target_os = "linux")]
+fn dbus_code(e: &zbus::Error) -> String {
+    match e {
+        zbus::Error::MethodError(name, _, _) => name.to_string(),
+        zbus::Error::FDO(fdo) => variant(fdo.as_ref()),
+        other => variant(other),
+    }
+}
+
+/// El servicio o el objeto no existen: la señal no está disponible, no es un fallo.
+#[cfg(target_os = "linux")]
+fn dbus_absent(e: &zbus::Error) -> bool {
+    let code = dbus_code(e);
+    [
+        "ServiceUnknown",
+        "UnknownObject",
+        "NameHasNoOwner",
+        "NoSuchSession",
+        "NoSessionForPID",
+        "UnknownProperty",
+        "UnknownInterface",
+    ]
+    .iter()
+    .any(|n| code.ends_with(n))
 }

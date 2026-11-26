@@ -15,7 +15,7 @@
 | Temperatura | `sysinfo` (sensores, si el sistema los expone) | `sysinfo` y `ProcessInfo.thermalState` (`objc2-foundation`) | `sysinfo` (`/sys/class/thermal` y hwmon) |
 | CPU y memoria | `sysinfo` | `sysinfo` | `sysinfo` |
 | Disco libre | `sysinfo` | `sysinfo` | `sysinfo` |
-| Actividad del usuario | `user-idle` (última entrada) | `user-idle` (tiempo de inactividad) | `zbus`: `IdleHint` de logind |
+| Actividad del usuario | `user-idle` (última entrada, `GetLastInputInfo`) | `objc2-core-graphics`: `CGEventSourceSecondsSinceLastEventType` | `zbus`: `IdleHint` de logind |
 
 Las dependencias de cada sistema van por `cfg` de destino: Linux no compila nada de Windows ni de macOS y no necesita bibliotecas de X11 ni de D-Bus en C. El prototipo compila sin avisos de `clippy` para Linux, Windows (`x86_64-pc-windows-msvc`) y macOS (`aarch64-apple-darwin`).
 
@@ -30,9 +30,10 @@ Las dependencias de cada sistema van por `cfg` de destino: Linux no compila nada
 | `windows` | 0.62.2 | MIT o Apache-2.0 | 2025-10-06 | 122 M | Oficial de Microsoft. Las API WinRT se llaman sin `unsafe`. |
 | `objc2-foundation` | 0.3.2 | MIT | 2025-10-04 | 63 M | Mantenido. |
 | `zbus` | 6.5.0 | MIT | 2026-11-20 | 46 M | Muy mantenido. La versión 6 no tiene API bloqueante; se usa `zbus::block_on`. |
-| `user-idle` | 0.6.0 | MIT o Apache-2.0 | 2023-10-18 | 0,08 M | **Sin publicaciones desde 2023.** En Windows y macOS solo envuelve una llamada del sistema. Si se abandona, se sustituye por esa llamada en un crate propio pequeño, porque el espacio de trabajo prohíbe `unsafe`. |
+| `objc2-core-graphics` | 0.3.2 | Zlib, Apache-2.0 o MIT | 2025-10-04 | — | Mantenido (mismo proyecto que `objc2-foundation`). Expone la llamada de inactividad de macOS sin `unsafe`. |
+| `user-idle` | 0.6.0 | MIT o Apache-2.0 | 2023-10-18 | 0,08 M | **Sin publicaciones desde 2023.** Solo se usa en Windows, donde envuelve `GetLastInputInfo`. En macOS arrastra `IOKit-sys`, `CoreFoundation-sys` y `mach` 0.1.2 y 0.3.2, las dos con el aviso [RUSTSEC-2020-0168](https://rustsec.org/advisories/RUSTSEC-2020-0168) (sin mantenimiento): por eso en macOS se sustituyó por `objc2-core-graphics`. **No es candidato para el gobernador.** |
 
-`cargo deny` pasa con todas (licencias, avisos, orígenes y prohibiciones).
+`cargo deny` pasa con la política actual (licencias, avisos, orígenes y prohibiciones). Con `unmaintained = "all"`, que también hace fallar los crates sin mantenimiento transitivos, falla por `mach`: aunque `user-idle` solo se declara para Windows, `cargo deny` evalúa todos los destinos y cuenta sus dependencias de macOS. Para el gobernador real, la inactividad en Windows necesita otra vía: `GetLastInputInfo` del crate `windows` es una función `unsafe`, y el espacio de trabajo prohíbe `unsafe`. Hay que elegir entre un crate envoltorio mantenido o una excepción revisada con ADR; se decide al implementar `crates/social-governor`.
 
 ## 3. Resultados
 
