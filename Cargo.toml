@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "tools/xtask", "tools/zone-pipeline"]
+members = ["crates/*", "tools/xtask", "tools/zone-pipeline", "tools/governor-probe"]
 # fuzz/ es un workspace aparte: cargo-fuzz exige nightly.
 exclude = ["fuzz"]
 

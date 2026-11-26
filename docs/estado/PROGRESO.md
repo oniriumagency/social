@@ -35,7 +35,7 @@
 | F0-S1 | Spike: prueba de humanidad (Colombia) | pendiente | | | |
 | F0-S2 | Spike: red entre nodos | pendiente | | | |
 | F0-S3 | Spike: zonas | hecha | Claude Code | `tarea/F0-S3-zonas`, [#11](https://github.com/oniriumagency/social/pull/11) | 2026-11-24 |
-| F0-S4 | Spike: gobernador | pendiente | | | |
+| F0-S4 | Spike: gobernador | en curso | Claude Code | `tarea/F0-S4-gobernador` | 2026-11-26 |
 | F0-S5 | Spike: llaves | pendiente | | | |
 | G0 | Compuerta | pendiente | | | |
 
