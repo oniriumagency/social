@@ -113,7 +113,7 @@ Definidas en el `package.json` raíz. Son las únicas que usan humanos, agentes 
 | `pnpm spike:gobernador` | Sonda del spike S4 (`tools/governor-probe`): lee cada segundo batería, red medida, temperatura, CPU, memoria, disco libre y actividad del usuario, y escribe un informe de texto sin datos que identifiquen el equipo. `pnpm spike:gobernador <segundos> <archivo>`; por defecto 600 s. |
 | `pnpm check:rules` | Verifica que `CLAUDE.md` y `ANTIGRAVITY.md` comparten el mismo bloque de reglas. |
 | `pnpm check:rust` / `pnpm check:ts` | Formato, lint, tipos y pruebas de un solo lenguaje. Son los trabajos `rust` y `ts` de CI. |
-| `pnpm check:supply` | `cargo-deny` (licencias, orígenes, crates prohibidos, avisos de RustSec) y `pnpm audit`. |
+| `pnpm check:supply` | `cargo-deny` (licencias, orígenes, crates prohibidos, avisos de RustSec) y `pnpm audit`. Falla con cualquier vulnerabilidad o crate sin mantenimiento, directo o transitivo (`unmaintained = "all"`); cada excepción en `ignore` de `deny.toml` lleva su justificación en `reason`. |
 | `pnpm check:secrets` | gitleaks sobre todo el historial. En local se omite con un aviso si gitleaks no está instalado; en CI es obligatorio. |
 | `pnpm check` | **Todo lo anterior que debe pasar antes de un PR:** fmt, lint, typecheck, test, vectors, spec sin cambios, reglas, dependencias y secretos. |
 

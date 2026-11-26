@@ -4,10 +4,20 @@
 all-features = true
 
 [advisories]
-# Avisos de seguridad de RustSec: cualquier vulnerabilidad o crate sin mantenimiento falla.
+# Avisos de seguridad de RustSec: cualquier vulnerabilidad o crate sin mantenimiento falla,
+# sea dependencia directa o transitiva (decisión del responsable, 2026-11-26). Toda
+# excepción en `ignore` lleva su justificación escrita (`reason`).
 version = 2
 yanked = "deny"
-ignore = []
+unmaintained = "all"
+ignore = [
+  # mach (sin mantenimiento) solo llega por user-idle en macOS. governor-probe, la sonda del
+  # spike S4, depende de user-idle únicamente en Windows, así que mach no se compila en
+  # ningún destino. cargo-deny une las dependencias de todos los destinos y no distingue
+  # ese caso; `[graph] targets` no lo resuelve. Se retira cuando la sonda deje de usar
+  # user-idle o se borre al cerrar el spike S4.
+  { id = "RUSTSEC-2020-0168", reason = "mach solo llega por user-idle en macOS; governor-probe usa user-idle solo en Windows" },
+]
 
 [licenses]
 version = 2
