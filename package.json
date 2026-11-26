@@ -27,6 +27,7 @@
     "spec:gen": "cargo run --locked -p xtask -- spec",
     "spec:check": "cargo run --locked -p xtask -- spec --check",
     "fuzz": "node scripts/fuzz.mjs",
+    "spike:gobernador": "cargo run --release --locked -p governor-probe --",
     "check:rules": "node scripts/check-agent-rules.mjs",
     "check:rust": "node scripts/run.mjs check:rust",
     "check:ts": "node scripts/run.mjs check:ts",

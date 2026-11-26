@@ -1,0 +1,26 @@
+[package]
+name = "governor-probe"
+description = "Prototipo del spike S4: lectura real de las señales del gobernador de recursos en cada sistema"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+starship-battery = "0.12.0"
+sysinfo = { version = "0.40.4", default-features = false, features = ["component", "disk", "system"] }
+
+[target.'cfg(windows)'.dependencies]
+user-idle = { version = "0.6.0", default-features = false }
+windows = { version = "0.62.2", features = ["Networking_Connectivity", "Foundation"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3", features = ["NSProcessInfo"] }
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "CGEventSource", "CGEventTypes"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "6.5.0", default-features = false, features = ["default-rt", "proxy"] }
