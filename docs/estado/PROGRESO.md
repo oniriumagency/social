@@ -36,7 +36,7 @@
 | F0-S2 | Spike: red entre nodos | pendiente | | | |
 | F0-S3 | Spike: zonas | hecha | Claude Code | `tarea/F0-S3-zonas`, [#11](https://github.com/oniriumagency/social/pull/11) | 2026-11-24 |
 | F0-S4 | Spike: gobernador | en curso | Claude Code | `tarea/F0-S4-gobernador` | 2026-11-26 |
-| F0-S5 | Spike: llaves | pendiente | | | |
+| F0-S5 | Spike: llaves | en curso | Claude Code | `tarea/F0-S5-llaves` | 2026-11-26 |
 | G0 | Compuerta | pendiente | | | |
 
 **Orden recomendado para empezar:** F0-T01, luego F0-T02 y F0-T04 en paralelo, luego F0-T05 → T06 → T07 → T08. Los spikes S1, S2, S4 y S5 pueden arrancar en cuanto exista F0-T01. S1 es el de mayor riesgo: conviene empezarlo cuanto antes.
