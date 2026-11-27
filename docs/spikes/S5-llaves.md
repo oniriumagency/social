@@ -45,7 +45,9 @@ no dice nada de autenticadores reales.
 
 | Dispositivo y sistema | Navegador | Gestor de llaves | Código | Fecha |
 | :-- | :-- | :-- | :-- | :-- |
-| Computador del responsable, Windows | Google Chrome | por confirmar | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` | 2026-11-26 |
+| Computador del responsable, Windows | Google Chrome | Gestor de contraseñas de Google (pide su PIN al crear) | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` | 2026-11-26 |
+| Computador del responsable, Windows | Firefox | — | Al crear: llave de acceso no creada (`UnknownError`); Ed25519 sí. Código pendiente | 2026-11-26 |
+| Computador del responsable, Windows | Microsoft Edge | Windows Hello | Al crear: llave de acceso creada sin PRF; Ed25519 sí. Código pendiente | 2026-11-26 |
 
 ## 4. Hallazgo abierto: llaves no extraíbles frente a I-8
 
