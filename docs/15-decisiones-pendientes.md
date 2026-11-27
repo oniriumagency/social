@@ -145,6 +145,8 @@ Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` ig
 - **C. Sin llave no extraíble en web.** La llave de dispositivo web se crea en WASM con caducidad corta. Cumple I-8 tal cual, pero un fallo de XSS puede copiar la llave y usarla hasta que caduque o se revoque. Llave raíz: igual que la de dispositivo, extraíble mientras viva en la web. Obliga a cambiar `docs/10` §2 punto 3, `docs/05` §11 y la fila «XSS y robo de llaves» de `docs/04`.
 - **D. La web no firma.** Firma la app (escritorio o móvil) y la web solo lee o pide la firma por QR. Lo más seguro, pero la web queda muy limitada y F1 ya no podría ser primero web. Llave raíz: nunca existe en web. Obliga a cambiar los mismos documentos que C y el orden de F1.
 
+En A y B, como la llave raíz deja de guardarse en el navegador, también cambian `docs/05` §11 («en web, llave no extraíble») y `docs/10` §2 punto 3, y un usuario solo web necesitará la frase para autorizar otro dispositivo.
+
 **Recomendación:** B si se confirma en navegadores; si no, A. Las dos dan lo que el modelo de amenazas ya da por hecho (`04`, fila «XSS y robo de llaves»). B además deja la criptografía en `social-crypto`, que es el espíritu de I-8. Cualquiera de las dos cambia una invariante o una zona sensible, así que lo decide el responsable con ADR.
 
 ---
