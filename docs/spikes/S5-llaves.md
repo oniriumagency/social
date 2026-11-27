@@ -46,8 +46,19 @@ no dice nada de autenticadores reales.
 | Dispositivo y sistema | Navegador | Gestor de llaves | Código | Fecha |
 | :-- | :-- | :-- | :-- | :-- |
 | Computador del responsable, Windows | Google Chrome | Gestor de contraseñas de Google (pide su PIN al crear) | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` | 2026-11-26 |
-| Computador del responsable, Windows | Firefox | — | Al crear: llave de acceso no creada (`UnknownError`); Ed25519 sí. Código pendiente | 2026-11-26 |
-| Computador del responsable, Windows | Microsoft Edge | Windows Hello | Al crear: llave de acceso creada sin PRF; Ed25519 sí. Código pendiente | 2026-11-26 |
+| Computador del responsable, Windows | Firefox | — (falló al crear, `UnknownError`) | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf-.det-.per1.ed1.nx1` | 2026-11-26 |
+| Computador del responsable, Windows | Microsoft Edge | Windows Hello | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` (al crear no anunció PRF) | 2026-11-26 |
+
+Lectura de estos resultados:
+
+- **Ed25519 no exportable** funciona en los tres navegadores de Windows: se crea, sobrevive a
+  recargar, firma y no se puede exportar.
+- **PRF** funciona con el gestor de Google (Chrome) y con Windows Hello (Edge). En Windows
+  Hello la creación no anuncia PRF, pero la lectura sí lo entrega y es estable: el cliente no
+  debe fiarse del aviso al crear y debe comprobar PRF en la primera lectura.
+- **Firefox en Windows** no creó la llave de acceso (`UnknownError`), así que PRF no se pudo
+  medir (`prf-`). Hay que tener una vía sin PRF (secreto aleatorio en almacén seguro, como
+  prevé `docs/05` §7).
 
 ## 4. Hallazgo abierto: llaves no extraíbles frente a I-8
 
