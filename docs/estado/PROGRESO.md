@@ -16,6 +16,7 @@
 | Qué | Depende de |
 | :-- | :-- |
 | Compuerta G0 | Los spikes S1, S2, S4 y S5 (pruebas físicas del responsable) |
+| Spike S5 en Android, Apple, Linux y segundo dispositivo (no bloquea G0) | Un despliegue con HTTPS (decisión del responsable, 2026-11-26; `spikes/S5-llaves.md` §3.3) |
 
 ## F0 — Cimientos y spikes
 

@@ -49,6 +49,9 @@ no dice nada de autenticadores reales.
 | Computador del responsable, Windows | Firefox | — (falló al crear, `UnknownError`) | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf-.det-.per1.ed1.nx1` | 2026-11-26 |
 | Computador del responsable, Windows | Microsoft Edge | Windows Hello | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` (al crear no anunció PRF) | 2026-11-26 |
 
+No se registró la versión de Windows ni la de cada navegador; la próxima medición debe
+anotarlas (en Chrome y Edge, `chrome://version` o `edge://version`; en Firefox, `about:`).
+
 Lectura de estos resultados:
 
 - **Ed25519 no exportable** funciona en los tres navegadores de Windows: se crea, sobrevive a
@@ -56,9 +59,11 @@ Lectura de estos resultados:
 - **PRF** funciona con el gestor de Google (Chrome) y con Windows Hello (Edge). En Windows
   Hello la creación no anuncia PRF, pero la lectura sí lo entrega y es estable: el cliente no
   debe fiarse del aviso al crear y debe comprobar PRF en la primera lectura.
-- **Firefox en Windows** no creó la llave de acceso (`UnknownError`), así que PRF no se pudo
-  medir (`prf-`). Hay que tener una vía sin PRF (secreto aleatorio en almacén seguro, como
-  prevé `docs/05` §7).
+- **Firefox en Windows** falló al crear una llave de acceso **pedida con la extensión PRF**
+  (`UnknownError`), así que PRF no se pudo medir (`prf-`). La sonda no reintenta sin la
+  extensión: no se sabe si Firefox no crea llaves de acceso en ese equipo o si falla solo con
+  PRF. Importa también para el método `dispositivo` (F2-T06). En cualquier caso hace falta una
+  vía sin PRF, como prevé `docs/05` §11.
 
 Matiz importante para la recuperación: la llave de Chrome quedó en el gestor de contraseñas de
 Google, que la **sincroniza** entre dispositivos; la de Edge quedó en Windows Hello, que la
@@ -71,6 +76,11 @@ de recuperación del secreto de identidad (`docs/05` §11).
   responsable. Se medirá cuando haya un despliegue con HTTPS (decisión del responsable,
   2026-11-26).
 - **Apple (macOS, iOS):** sin dispositivo disponible. Mismo momento.
+- **Linux de escritorio:** no se midió ningún navegador.
+- **Segundo dispositivo:** `det1` son dos lecturas en el mismo equipo. No se midió que otro
+  dispositivo con la misma llave sincronizada obtenga la misma salida PRF, ni hay forma de que
+  el cliente sepa si una llave está sincronizada (la diferencia entre Chrome y Edge sale de las
+  ventanas que vio el responsable, no de un dato que lea la página). Se mide junto con Android.
 
 Ninguno bloquea G0: la propuesta de §6 tiene vía sin PRF para cualquier navegador que no lo
 ofrezca.
@@ -82,12 +92,23 @@ ejecutarse en los tres sistemas).
 
 | Opción | Versión (2026-11-26) | Qué es | Valoración |
 | :-- | :-- | :-- | :-- |
-| `keyring-core` + almacenes nativos (`keyring` 4.x) | 4.2.0, 43 M de descargas | Credential Manager en Windows, Keychain en macOS, Secret Service (zbus) en Linux; Android e iOS con crates de almacén aparte | **Recomendada.** Usa el almacén del sistema, que es lo que pide `docs/05` §11. La 4.x separa API (`keyring-core`) y almacenes: se eligen solo los necesarios por destino |
+| `keyring-core` + almacenes nativos (`keyring` 4.x) | `keyring` 4.2.0 (43 M de descargas); `keyring-core` 1.1.0 | Credential Manager en Windows, Keychain en macOS, Secret Service (zbus) en Linux; Android e iOS con crates de almacén aparte | **Recomendada en Windows y macOS**; en Linux, ver los riesgos de abajo. Usa el almacén del sistema, que es lo que pide `docs/05` §11. La 4.x separa API (`keyring-core`) y almacenes: se eligen solo los necesarios por destino |
 | `tauri-plugin-stronghold` | 2.4.0 | Bóveda cifrada en archivo, protegida con contraseña | No es el almacén del sistema; exige gestionar otra contraseña. Descartada |
 | `tauri-plugin-keyring-store`, `tauri-plugin-keychain` | 0.3.2 / 2.0.2 | Envoltorios de terceros con poco uso | Descartados: poca adopción; mejor usar `keyring-core` directamente desde Rust |
 
-Riesgo en Linux: Secret Service necesita un servicio de llavero activo (GNOME Keyring,
-KWallet). Sin él, la app debe avisar y no guardar la llave raíz en claro.
+Riesgos en Linux:
+
+- Secret Service necesita un servicio de llavero activo (GNOME Keyring, KWallet). Sin él, la app
+  debe avisar y no guardar la llave raíz en claro.
+- **El almacén de Linux que trae `keyring` por defecto no pasa hoy `pnpm check:supply`**
+  (comprobado por la revisión con la política de `deny.toml` más `unmaintained = "all"`):
+  `secret-service` 5.2.0 arrastra `zbus` 5.19, cuyos `zvariant`, `zvariant_derive` y
+  `zbus_names` tienen avisos RUSTSEC-2026-0370, 0371 y 0372, y depende directamente de `sha2`,
+  `hkdf`, `aes` y `getrandom`, que la lista de I-8 reserva a `social-crypto`.
+  `keyring-core` (1.1.0) con los almacenes de Windows y macOS pasa. También pasa
+  `dbus-secret-service-keyring-store` sin las funciones `crypto-*`, pero depende de libdbus
+  del sistema y falta valorar qué se pierde sin ellas. F1-T23 debe elegir el almacén de Linux
+  con esto en cuenta; no se resuelve aquí. Es la misma lección que `mach` en S4.
 
 ## 5. Hallazgo abierto: llaves no extraíbles frente a I-8
 
@@ -117,8 +138,34 @@ Propuesta para confirmar con ADR antes de F1-T18 y F2-T04. Toda la criptografía
    `HKDF(secreto de identidad, info = "social/v1/root-backup")`. Dónde se guarda la copia
    queda para el ADR.
 
+### 6.1 Puntos abiertos de la propuesta
+
+Esta propuesta no es final. Quedan sin definir, para el ADR antes de F1-T18 y F1-T19:
+
+1. **Orden de fases.** La frase de recuperación se construye en F1 (T18, T19), pero el secreto
+   de identidad y la copia cifrada llegan en F2-T04. Falta decir qué protege la frase en F1 y
+   si sigue valiendo en F2.
+2. **Qué codifican las 24 palabras** en cada vía (con PRF y sin PRF), y si recuperan la llave
+   raíz directamente o a través de la copia cifrada.
+3. **Vía sin PRF en web.** El almacén seguro de §4 es el de Tauri. Un usuario solo web sin PRF
+   (el caso medido de Firefox) no lo tiene.
+4. **Saber si una llave de acceso está sincronizada.** El punto 2 lo necesita y nada lo mide
+   hoy (§3.3).
+5. **Cliente de escritorio.** No se dice cómo obtiene la salida PRF la app de Tauri, cuya vista
+   web no carga el origen de la web.
+6. **Gestores distintos.** «Igual en todos los dispositivos» vale para una misma llave
+   sincronizada. Dos gestores que no comparten llaves dan salidas distintas; falta decir qué
+   pasa entonces.
+
+Además, para el mismo ADR: parámetros exactos de HKDF (sal, longitud) y vectores dorados;
+identificador de la parte que confía (RP ID) y su alcance; datos de la llave de acceso
+(`user.id`, nombre) sin nada de la cuenta (pilar 3); dónde se guarda la copia cifrada y cómo se
+localiza sin enlazar cuenta y billetera (I-5); y si la llave de acceso del PRF es la misma del
+método `dispositivo`. G0 debe llevar a `docs/05` §11 lo aprendido de Windows Hello (PRF sin
+sincronización; comprobar PRF en la primera lectura).
+
 ## 7. Pendiente
 
-- Android y Apple (§3.3).
-- Prueba física del almacén seguro (F1-T23).
-- Decidir el hallazgo de §5 y confirmar §6 con ADR.
+- Android, Apple, Linux y segundo dispositivo (§3.3).
+- Prueba física del almacén seguro y elección del almacén de Linux (F1-T23, §4).
+- Decidir D-19 (§5) y cerrar los puntos de §6.1 con ADR.
