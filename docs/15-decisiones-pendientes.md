@@ -22,6 +22,7 @@ Decisiones que corresponden al responsable humano. Cada una tiene un **valor por
 | D-16 | Política de retos: frecuencia, plazos y efecto en el puntaje | Valores de `05` §6.2 | F2-T24 | Pendiente de calibrar |
 | D-17 | Exigir que los eventos viajen en su forma canónica exacta | Forma canónica obligatoria | — | **Decidida el 2026-11-24** |
 | D-18 | Efecto de una revocación sobre eventos fechados antes de ella | La revocación vale desde su `created_at` (`06` §4) | F3 | Pendiente; propuesta del responsable el 2026-11-24 |
+| D-19 | Llaves no extraíbles en web frente a I-8 (sin criptografía en TypeScript) | La web firma con el núcleo WASM; la llave no es extraíble solo en escritorio y móvil | F1-T18 | Pendiente; hallazgo del spike S5 |
 
 ---
 
@@ -132,6 +133,16 @@ Hoy una revocación de dispositivo solo afecta a los eventos con `created_at` ig
 - **C. Ventana de llegada.** Se acepta un evento fechado antes de la revocación solo si llega pocas horas después de ella. Sirve en la pasarela, pero un nodo no sabe cuándo llegó un evento a otro nodo, así que no se puede aplicar igual en toda la red.
 
 **Recomendación:** la pantalla de revisión del responsable más la opción B. La pantalla es la forma de decidir qué conservar y la fecha «desde» hace que esa decisión valga en toda la red. Cambia el protocolo (`06` §4, ADR, esquemas y vectores), así que se implementa con su tarea antes de F3, no ahora.
+
+## D-19. Llaves no extraíbles en web frente a I-8
+
+`docs/10` §2 y `docs/05` §11 piden que en el navegador la llave sea no extraíble. Eso solo existe como `CryptoKey` de WebCrypto: una llave creada en el núcleo WASM vive en la memoria de la página y un script malicioso podría copiarla. Pero I-8 prohíbe la criptografía en TypeScript. El spike S5 midió que Chrome, Edge y Firefox en Windows crean, conservan y usan una llave Ed25519 de WebCrypto que no se puede exportar (`spikes/S5-llaves.md` §3.2). Hay que decidir antes de F1-T18. Opciones:
+
+- **A. Excepción acotada a I-8.** Un único módulo de `packages/core`, mínimo y revisado, que solo crea, guarda y usa la llave de dispositivo con WebCrypto (Ed25519, no extraíble). Todo lo demás sigue en WASM. Exige cambiar la invariante y un ADR.
+- **B. Sin llave no extraíble en web.** La llave de dispositivo web se crea en WASM con caducidad corta. Cumple I-8 tal cual, pero un fallo de XSS puede copiar la llave y usarla hasta que caduque o se revoque.
+- **C. La web no firma.** Firma la app (escritorio o móvil) y la web solo lee o pide la firma por QR. Lo más seguro, pero la web queda muy limitada.
+
+**Recomendación:** A. Es lo que el modelo de amenazas ya da por hecho (`04`, fila «XSS y robo de llaves») y el spike demuestra que funciona en los navegadores medidos. Cambia una invariante, así que lo decide el responsable con ADR.
 
 ---
 

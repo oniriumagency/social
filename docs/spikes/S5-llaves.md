@@ -1,12 +1,12 @@
 # Spike S5: llaves
 
-> Estado: **parcial**. Faltan las pruebas en dispositivos reales del responsable.
+> Estado: **cerrado con Windows**. Android y Apple quedan pendientes (§3.3).
 
 ## 1. Pregunta
 
 Según `docs/12` (F0-S5): soporte de la extensión PRF de WebAuthn por navegador y sistema;
 llaves Ed25519 no extraíbles en navegadores; almacén seguro en Tauri por sistema; propuesta
-final de derivación y copia de seguridad (`docs/05` §7, `docs/10` §2).
+final de derivación y copia de seguridad (`docs/05` §11, `docs/10` §2).
 
 ## 2. Método
 
@@ -60,16 +60,65 @@ Lectura de estos resultados:
   medir (`prf-`). Hay que tener una vía sin PRF (secreto aleatorio en almacén seguro, como
   prevé `docs/05` §7).
 
-## 4. Hallazgo abierto: llaves no extraíbles frente a I-8
+Matiz importante para la recuperación: la llave de Chrome quedó en el gestor de contraseñas de
+Google, que la **sincroniza** entre dispositivos; la de Edge quedó en Windows Hello, que la
+guarda **solo en ese equipo**. Las dos entregan PRF, pero solo la sincronizada sirve como vía
+de recuperación del secreto de identidad (`docs/05` §11).
 
-`docs/10` §2 y `docs/05` §7 piden llaves no extraíbles en web. En el navegador eso solo existe
+### 3.3 Pendiente
+
+- **Android:** la conexión por USB con Chrome no autorizó la depuración en el teléfono del
+  responsable. Se medirá cuando haya un despliegue con HTTPS (decisión del responsable,
+  2026-11-26).
+- **Apple (macOS, iOS):** sin dispositivo disponible. Mismo momento.
+
+Ninguno bloquea G0: la propuesta de §6 tiene vía sin PRF para cualquier navegador que no lo
+ofrezca.
+
+## 4. Almacén seguro en Tauri
+
+Evaluación de escritorio, sin prueba física (se verifica en F1-T23, que debe compilar y
+ejecutarse en los tres sistemas).
+
+| Opción | Versión (2026-11-26) | Qué es | Valoración |
+| :-- | :-- | :-- | :-- |
+| `keyring-core` + almacenes nativos (`keyring` 4.x) | 4.2.0, 43 M de descargas | Credential Manager en Windows, Keychain en macOS, Secret Service (zbus) en Linux; Android e iOS con crates de almacén aparte | **Recomendada.** Usa el almacén del sistema, que es lo que pide `docs/05` §11. La 4.x separa API (`keyring-core`) y almacenes: se eligen solo los necesarios por destino |
+| `tauri-plugin-stronghold` | 2.4.0 | Bóveda cifrada en archivo, protegida con contraseña | No es el almacén del sistema; exige gestionar otra contraseña. Descartada |
+| `tauri-plugin-keyring-store`, `tauri-plugin-keychain` | 0.3.2 / 2.0.2 | Envoltorios de terceros con poco uso | Descartados: poca adopción; mejor usar `keyring-core` directamente desde Rust |
+
+Riesgo en Linux: Secret Service necesita un servicio de llavero activo (GNOME Keyring,
+KWallet). Sin él, la app debe avisar y no guardar la llave raíz en claro.
+
+## 5. Hallazgo abierto: llaves no extraíbles frente a I-8
+
+`docs/10` §2 y `docs/05` §11 piden llaves no extraíbles en web. En el navegador eso solo existe
 como `CryptoKey` de WebCrypto: una llave generada dentro del núcleo WASM vive en memoria de
-JavaScript y sí se puede copiar. I-8 prohíbe la criptografía en TypeScript. Hay que decidir
-antes de F1-T18 si la web firma con WebCrypto a través de una capa mínima y revisada, o si
-renuncia a llaves no extraíbles. Este informe propondrá opciones cuando estén los resultados.
+JavaScript y sí se puede copiar. I-8 prohíbe la criptografía en TypeScript. Los resultados de
+§3.2 muestran que la vía WebCrypto funciona en los tres navegadores medidos. Las opciones y la
+recomendación están en `docs/15`, D-19; se decide antes de F1-T18.
 
-## 5. Pendiente
+## 6. Propuesta de derivación y copia de seguridad
 
-- Resultados en dispositivos reales (§3.2).
-- Almacén seguro de Tauri por sistema.
-- Propuesta final de derivación y copia de seguridad.
+Propuesta para confirmar con ADR antes de F1-T18 y F2-T04. Toda la criptografía va en
+`social-crypto` (núcleo WASM en web); JavaScript solo pasa bytes.
+
+1. **Secreto de identidad con PRF.** La passkey se evalúa con una sal fija del protocolo
+   (por ejemplo `social/v1/identity`), igual en todos los dispositivos. El secreto es
+   `HKDF-SHA256(salida PRF, info = "social/v1/semaphore-identity")`. La app comprueba PRF en la
+   primera lectura, no al crear (§3.2, Edge).
+2. **Solo cuenta como vía de recuperación si la passkey está sincronizada.** Si el gestor la
+   guarda solo en el equipo (Windows Hello), la frase de recuperación es obligatoria.
+3. **Sin PRF** (Firefox en Windows, o el usuario no quiere passkey): secreto aleatorio de 32
+   bytes en el almacén seguro (§4) y frase de recuperación de 24 palabras obligatoria.
+4. **Llave raíz:** se genera en `social-crypto` y vive en el almacén del sistema (escritorio y
+   móvil). En web, la llave raíz no se guarda si hay app; la web usa una llave de dispositivo
+   delegada (`docs/10` §2), sujeta al hallazgo de §5.
+5. **Copia cifrada de la llave raíz:** cifrado autenticado con una clave
+   `HKDF(secreto de identidad, info = "social/v1/root-backup")`. Dónde se guarda la copia
+   queda para el ADR.
+
+## 7. Pendiente
+
+- Android y Apple (§3.3).
+- Prueba física del almacén seguro (F1-T23).
+- Decidir el hallazgo de §5 y confirmar §6 con ADR.
