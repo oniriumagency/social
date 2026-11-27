@@ -49,8 +49,9 @@ no dice nada de autenticadores reales.
 | Computador del responsable, Windows | Firefox | — (falló al crear, `UnknownError`) | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf-.det-.per1.ed1.nx1` | 2026-11-26 |
 | Computador del responsable, Windows | Microsoft Edge | Windows Hello | `S5v1 sc1.pk1.uv1.cap1.cprf1.prf1.det1.per1.ed1.nx1` (al crear no anunció PRF) | 2026-11-26 |
 
-No se registró la versión de Windows ni la de cada navegador; la próxima medición debe
-anotarlas (en Chrome y Edge, `chrome://version` o `edge://version`; en Firefox, `about:`).
+Versiones (dadas por el responsable el 2026-11-26): Windows 11 Home 26H2 (compilación
+26300.9974); Google Chrome 158.0.8127.37; Microsoft Edge 158.0.4370.33 (Chromium 158.0.8127.37);
+Firefox 161.0 (paquete MSIX).
 
 Lectura de estos resultados:
 
@@ -78,9 +79,11 @@ de recuperación del secreto de identidad (`docs/05` §11).
 - **Apple (macOS, iOS):** sin dispositivo disponible. Mismo momento.
 - **Linux de escritorio:** no se midió ningún navegador.
 - **Segundo dispositivo:** `det1` son dos lecturas en el mismo equipo. No se midió que otro
-  dispositivo con la misma llave sincronizada obtenga la misma salida PRF, ni hay forma de que
-  el cliente sepa si una llave está sincronizada (la diferencia entre Chrome y Edge sale de las
-  ventanas que vio el responsable, no de un dato que lea la página). Se mide junto con Android.
+  dispositivo con la misma llave sincronizada obtenga la misma salida PRF, y la sonda no lee si
+  una llave está sincronizada (la diferencia entre Chrome y Edge sale de las ventanas que vio
+  el responsable). WebAuthn sí publica ese dato en los indicadores de copia de seguridad de
+  los datos del autenticador (BE y BS); falta medir si los gestores los informan bien, y
+  leerlos en la medición de Android. Se mide junto con Android.
 
 Ninguno bloquea G0: la propuesta de §6 tiene vía sin PRF para cualquier navegador que no lo
 ofrezca.
@@ -149,8 +152,9 @@ Esta propuesta no es final. Quedan sin definir, para el ADR antes de F1-T18 y F1
    raíz directamente o a través de la copia cifrada.
 3. **Vía sin PRF en web.** El almacén seguro de §4 es el de Tauri. Un usuario solo web sin PRF
    (el caso medido de Firefox) no lo tiene.
-4. **Saber si una llave de acceso está sincronizada.** El punto 2 lo necesita y nada lo mide
-   hoy (§3.3).
+4. **Saber si una llave de acceso está sincronizada.** El punto 2 lo necesita. WebAuthn lo
+   publica en los indicadores BE y BS, pero no se ha medido si los gestores los informan bien
+   (§3.3).
 5. **Cliente de escritorio.** No se dice cómo obtiene la salida PRF la app de Tauri, cuya vista
    web no carga el origen de la web.
 6. **Gestores distintos.** «Igual en todos los dispositivos» vale para una misma llave
