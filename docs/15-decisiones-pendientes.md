@@ -163,3 +163,4 @@ En A y B, como la llave raíz deja de guardarse en el navegador, también cambia
 | 2026-11-24 | D-04 | AGPL-3.0-only para servicios, nodo y apps; Apache-2.0 para núcleo, especificación, SDK y herramientas. | `03`, `15`, ADR-011, `LICENSE`, `README.md`, `PROGRESO.md` |
 | 2026-11-24 | D-03 | Modelo A: descuento financiado por el comercio. Sin aliados, solo se muestra el saldo y ventajas digitales sin costo dentro de la app; se ratifica con el dictamen de F4-T00. | `09` §7, `15`, `PROGRESO.md` |
 | 2026-11-24 | D-17 | Los eventos solo son válidos en su forma canónica JCS exacta (`E_JSON_NOT_CANONICAL`). | `06` §1 y §3, `15`, ADR-020, `spec/vectors/envelope.json`, `PROGRESO.md` |
+| 2026-11-26 | — | El control de dependencias de Rust falla con cualquier crate sin mantenimiento, directo o transitivo (`unmaintained = "all"`). Cada excepción lleva su justificación escrita; la de `mach` (RUSTSEC-2020-0168) se retira al cerrar el spike S4. | `deny.toml`, `11`, `spikes/S4` |
